@@ -7,17 +7,44 @@
 <div class="container-fluid py-4">
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="h3 mb-3">Contract Management</h1>
+            <h1 class="h3 mb-3">Contracts</h1>
             
-            {% if perms.contracts.add_contract %}
-            <a href="{% url 'contracts:create' %}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Create New Contract
-            </a>
+            <div class="mb-3">
+                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+                
+                {% if perms.contracts.add_contract and user.role == 'company' %}
+                <a href="{% url 'contracts:create' %}" class="btn btn-primary ms-2">
+                    <i class="fas fa-plus me-2"></i>Create New Contract
+                </a>
+                {% endif %}
+                
+                {% if user.role == 'company' %}
+                <a href="{% url 'contracts:template_list' %}" class="btn btn-outline-primary ms-2">
+                    <i class="fas fa-file-alt me-2"></i>Manage Templates
+                </a>
+                {% endif %}
+            </div>
             
-            <a href="{% url 'contracts:template_list' %}" class="btn btn-outline-primary ms-2">
-                <i class="fas fa-file-contract me-2"></i>Contract Templates
-            </a>
-            {% endif %}
+            <!-- Filter by status -->
+            <div class="mb-3">
+                <form method="get" class="d-flex gap-2">
+                    <select name="status" class="form-select" style="max-width: 200px;">
+                        <option value="">All Statuses</option>
+                        <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
+                        <option value="pending_cleaner" {% if status_filter == 'pending_cleaner' %}selected{% endif %}>Pending Cleaner Approval</option>
+                        <option value="pending_company" {% if status_filter == 'pending_company' %}selected{% endif %}>Pending Company Approval</option>
+                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                        <option value="expired" {% if status_filter == 'expired' %}selected{% endif %}>Expired</option>
+                        <option value="terminated" {% if status_filter == 'terminated' %}selected{% endif %}>Terminated</option>
+                    </select>
+                    <button type="submit" class="btn btn-outline-secondary">Filter</button>
+                    {% if status_filter %}
+                    <a href="{% url 'contracts:list' %}" class="btn btn-outline-danger">Clear</a>
+                    {% endif %}
+                </form>
+            </div>
         </div>
     </div>
     
@@ -26,30 +53,179 @@
             <h5 class="card-title mb-0">Your Contracts</h5>
         </div>
         <div class="card-body">
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
-                This is a placeholder for the contracts list view. The actual contracts functionality will be implemented soon.
-            </div>
-            
+            {% if contracts %}
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Contract Name</th>
+                            <th>Contract #</th>
+                            <th>Title</th>
+                            <th>{% if user.role == 'company' %}Cleaner{% elif user.role == 'cleaner' %}Company{% else %}Parties{% endif %}</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
                             <th>Type</th>
                             <th>Status</th>
-                            <th>Created</th>
-                            <th>Expires</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
+                        {% for contract in contracts %}
                         <tr>
-                            <td colspan="6" class="text-center">No contracts available yet.</td>
+                            <td>{{ contract.contract_number }}</td>
+                            <td>{{ contract.title }}</td>
+                            <td>
+                                {% if user.role == 'company' %}
+                                    {{ contract.cleaner.user.get_full_name }}
+                                {% elif user.role == 'cleaner' %}
+                                    {{ contract.company.company_name }}
+                                {% else %}
+                                    {{ contract.cleaner.user.get_full_name }} / {{ contract.company.company_name }}
+                                {% endif %}
+                            </td>
+                            <td>{{ contract.start_date|date:"M d, Y" }}</td>
+                            <td>{{ contract.end_date|date:"M d, Y"|default:"Ongoing" }}</td>
+                            <td>
+                                {% if contract.contract_type == 'full_time' %}
+                                    <span class="badge bg-primary">Full-time</span>
+                                {% elif contract.contract_type == 'part_time' %}
+                                    <span class="badge bg-info">Part-time</span>
+                                {% elif contract.contract_type == 'mini_job' %}
+                                    <span class="badge bg-secondary">Mini-job</span>
+                                {% elif contract.contract_type == 'freelance' %}
+                                    <span class="badge bg-warning">Freelance</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if contract.status == 'draft' %}
+                                    <span class="badge bg-secondary">Draft</span>
+                                {% elif contract.status == 'pending_cleaner' %}
+                                    <span class="badge bg-warning">Pending Cleaner</span>
+                                {% elif contract.status == 'pending_company' %}
+                                    <span class="badge bg-warning">Pending Company</span>
+                                {% elif contract.status == 'active' %}
+                                    <span class="badge bg-success">Active</span>
+                                {% elif contract.status == 'expired' %}
+                                    <span class="badge bg-danger">Expired</span>
+                                {% elif contract.status == 'terminated' %}
+                                    <span class="badge bg-danger">Terminated</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        Actions
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'contracts:detail' contract_id=contract.id %}">
+                                                <i class="fas fa-eye me-2"></i>View Details
+                                            </a>
+                                        </li>
+                                        
+                                        {% if perms.contracts.change_contract and contract.status == 'draft' %}
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'contracts:edit' contract_id=contract.id %}">
+                                                <i class="fas fa-edit me-2"></i>Edit
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if user.role == 'company' and contract.status == 'draft' %}
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'contracts:detail' contract_id=contract.id %}?action=submit">
+                                                <i class="fas fa-paper-plane me-2"></i>Submit for Approval
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if user.role == 'cleaner' and contract.status == 'pending_cleaner' %}
+                                        <li>
+                                            <a class="dropdown-item text-success" href="{% url 'contracts:approve' contract_id=contract.id %}">
+                                                <i class="fas fa-check me-2"></i>Approve
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="{% url 'contracts:reject' contract_id=contract.id %}">
+                                                <i class="fas fa-times me-2"></i>Reject
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if user.role == 'company' and contract.status == 'pending_company' %}
+                                        <li>
+                                            <a class="dropdown-item text-success" href="{% url 'contracts:approve' contract_id=contract.id %}">
+                                                <i class="fas fa-check me-2"></i>Approve
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="{% url 'contracts:reject' contract_id=contract.id %}">
+                                                <i class="fas fa-times me-2"></i>Reject
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if contract.status == 'active' %}
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'contracts:create_addendum' contract_id=contract.id %}">
+                                                <i class="fas fa-file-alt me-2"></i>Create Addendum
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if user.role == 'company' and contract.status == 'active' %}
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="{% url 'contracts:terminate' contract_id=contract.id %}">
+                                                <i class="fas fa-ban me-2"></i>Terminate
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        <li><hr class="dropdown-divider"></li>
+                                        
+                                        {% if contract.contract_file %}
+                                        <li>
+                                            <a class="dropdown-item" href="{{ contract.contract_file.url }}" target="_blank">
+                                                <i class="fas fa-download me-2"></i>Download
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if perms.contracts.delete_contract and contract.status == 'draft' %}
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="{% url 'contracts:delete' contract_id=contract.id %}" 
+                                              onclick="return confirm('Are you sure you want to delete this contract? This cannot be undone.');">
+                                                <i class="fas fa-trash me-2"></i>Delete
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </td>
                         </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                
+                {% if status_filter %}
+                No contracts found with status: <strong>{{ status_filter }}</strong>. 
+                <a href="{% url 'contracts:list' %}">View all contracts</a>
+                {% else %}
+                
+                {% if user.role == 'company' %}
+                You haven't created any contracts yet. Click "Create New Contract" to get started.
+                {% elif user.role == 'cleaner' %}
+                You don't have any contracts assigned to you yet. Companies will send you contract offers when available.
+                {% else %}
+                No contracts found in the system.
+                {% endif %}
+                
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

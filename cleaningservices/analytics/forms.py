@@ -1,241 +1,119 @@
 from django import forms
-from django.utils import timezone
-from datetime import datetime, timedelta
+from django.utils.translation import gettext_lazy as _
+import json
 
-from .models import AnalyticsReport, DashboardSavedView
+from .models import DashboardSavedView, AnalyticsReport
 from accounts.models import CompanyProfile, CleanerProfile
 
 
-class ReportFilterForm(forms.Form):
-    """Form for filtering analytics data."""
-    PERIOD_CHOICES = [
-        ('', 'Select Period'),
-        ('today', 'Today'),
-        ('yesterday', 'Yesterday'),
-        ('this_week', 'This Week'),
-        ('last_week', 'Last Week'),
-        ('this_month', 'This Month'),
-        ('last_month', 'Last Month'),
-        ('this_quarter', 'This Quarter'),
-        ('last_quarter', 'Last Quarter'),
-        ('this_year', 'This Year'),
-        ('last_year', 'Last Year'),
-        ('custom', 'Custom Range'),
-    ]
-    
-    period = forms.ChoiceField(
-        choices=PERIOD_CHOICES,
+class DashboardCustomizationForm(forms.Form):
+    """Form for customizing dashboard layout and widgets."""
+    configuration = forms.JSONField(
+        widget=forms.HiddenInput(), 
         required=False,
-        widget=forms.Select(attrs={'class': 'form-select'}),
+        initial={}
     )
     
-    start_date = forms.DateField(
-        required=False,
-        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-    )
-    
-    end_date = forms.DateField(
-        required=False,
-        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-    )
-    
-    company = forms.ModelChoiceField(
-        queryset=CompanyProfile.objects.all(),
-        required=False,
-        empty_label='All Companies',
-        widget=forms.Select(attrs={'class': 'form-select'}),
-    )
-    
-    cleaner = forms.ModelChoiceField(
-        queryset=CleanerProfile.objects.all(),
-        required=False,
-        empty_label='All Cleaners',
-        widget=forms.Select(attrs={'class': 'form-select'}),
-    )
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        period = cleaned_data.get('period')
-        start_date = cleaned_data.get('start_date')
-        end_date = cleaned_data.get('end_date')
+    def clean_configuration(self):
+        """Validate configuration JSON structure."""
+        configuration = self.cleaned_data.get('configuration')
         
-        # If custom range is selected, both start and end date are required
-        if period == 'custom':
-            if not start_date:
-                self.add_error('start_date', 'Start date is required for custom range')
-            if not end_date:
-                self.add_error('end_date', 'End date is required for custom range')
-            
-            # Ensure end date is not before start date
-            if start_date and end_date and end_date < start_date:
-                self.add_error('end_date', 'End date cannot be before start date')
+        if not configuration:
+            # Default configuration
+            return {
+                'layout': 'grid',
+                'widgets': [
+                    {'type': 'time_summary', 'position': 1, 'size': 'medium'},
+                    {'type': 'contract_status', 'position': 2, 'size': 'medium'},
+                    {'type': 'cleaner_performance', 'position': 3, 'size': 'large'},
+                    {'type': 'revenue_chart', 'position': 4, 'size': 'large'},
+                ]
+            }
         
-        # If predefined period is selected, calculate the date range
-        elif period and period != '':
-            today = timezone.now().date()
-            
-            if period == 'today':
-                start_date = today
-                end_date = today
-            elif period == 'yesterday':
-                yesterday = today - timedelta(days=1)
-                start_date = yesterday
-                end_date = yesterday
-            elif period == 'this_week':
-                start_date = today - timedelta(days=today.weekday())
-                end_date = today
-            elif period == 'last_week':
-                start_date = today - timedelta(days=today.weekday() + 7)
-                end_date = start_date + timedelta(days=6)
-            elif period == 'this_month':
-                start_date = today.replace(day=1)
-                end_date = today
-            elif period == 'last_month':
-                if today.month == 1:
-                    last_month = today.replace(year=today.year-1, month=12, day=1)
-                else:
-                    last_month = today.replace(month=today.month-1, day=1)
-                
-                start_date = last_month
-                # Last day of last month
-                if today.month == 1:
-                    end_date = today.replace(year=today.year-1, month=12, day=31)
-                else:
-                    next_month = today.replace(day=1)
-                    end_date = next_month - timedelta(days=1)
-            elif period == 'this_quarter':
-                current_quarter = (today.month - 1) // 3 + 1
-                start_date = datetime(today.year, 3 * current_quarter - 2, 1).date()
-                if current_quarter == 4:
-                    end_date = datetime(today.year, 12, 31).date()
-                else:
-                    end_date = datetime(today.year, 3 * current_quarter + 1, 1).date() - timedelta(days=1)
-            elif period == 'last_quarter':
-                current_quarter = (today.month - 1) // 3 + 1
-                last_quarter = current_quarter - 1
-                last_quarter_year = today.year
-                
-                if last_quarter == 0:
-                    last_quarter = 4
-                    last_quarter_year -= 1
-                    
-                start_date = datetime(last_quarter_year, 3 * last_quarter - 2, 1).date()
-                if last_quarter == 4:
-                    end_date = datetime(last_quarter_year, 12, 31).date()
-                else:
-                    end_date = datetime(last_quarter_year, 3 * last_quarter + 1, 1).date() - timedelta(days=1)
-            elif period == 'this_year':
-                start_date = today.replace(month=1, day=1)
-                end_date = today
-            elif period == 'last_year':
-                start_date = datetime(today.year - 1, 1, 1).date()
-                end_date = datetime(today.year - 1, 12, 31).date()
-            
-            cleaned_data['start_date'] = start_date
-            cleaned_data['end_date'] = end_date
+        if isinstance(configuration, str):
+            try:
+                configuration = json.loads(configuration)
+            except json.JSONDecodeError:
+                raise forms.ValidationError(_("Invalid JSON format in configuration"))
         
-        return cleaned_data
+        # Validate required fields
+        if 'layout' not in configuration:
+            configuration['layout'] = 'grid'
+        
+        if 'widgets' not in configuration or not isinstance(configuration['widgets'], list):
+            raise forms.ValidationError(_("Configuration must contain a 'widgets' list"))
+        
+        # Validate widget entries
+        valid_widget_types = ['time_summary', 'contract_status', 'cleaner_performance', 
+                             'revenue_chart', 'customer_satisfaction', 'job_statistics']
+        
+        valid_sizes = ['small', 'medium', 'large', 'full']
+        
+        for widget in configuration['widgets']:
+            if 'type' not in widget:
+                raise forms.ValidationError(_("Each widget must have a 'type'"))
+            
+            if widget['type'] not in valid_widget_types:
+                raise forms.ValidationError(_(f"Invalid widget type: {widget['type']}"))
+            
+            if 'size' in widget and widget['size'] not in valid_sizes:
+                raise forms.ValidationError(_(f"Invalid widget size: {widget['size']}"))
+            
+            if 'position' not in widget:
+                widget['position'] = len(configuration['widgets'])
+        
+        return configuration
 
 
-class AnalyticsReportForm(forms.ModelForm):
+class ReportForm(forms.ModelForm):
     """Form for creating and editing analytics reports."""
     class Meta:
         model = AnalyticsReport
         fields = [
-            'title', 'report_type', 'period', 'start_date', 'end_date', 
-            'company', 'cleaner', 'parameters', 'is_scheduled', 'schedule_frequency'
+            'title', 'report_type', 'period', 'start_date', 'end_date',
+            'company', 'cleaner', 'is_scheduled', 'schedule_frequency'
         ]
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'report_type': forms.Select(attrs={'class': 'form-select'}),
-            'period': forms.Select(attrs={'class': 'form-select'}),
+            'period': forms.Select(attrs={'class': 'form-select', 'id': 'period-select'}),
             'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'company': forms.Select(attrs={'class': 'form-select'}),
             'cleaner': forms.Select(attrs={'class': 'form-select'}),
-            'parameters': forms.Textarea(attrs={'class': 'form-control json-editor', 'rows': 5}),
-            'is_scheduled': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'schedule_frequency': forms.Select(attrs={'class': 'form-select'}),
+            'is_scheduled': forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'schedule-check'}),
+            'schedule_frequency': forms.Select(attrs={'class': 'form-select', 'id': 'schedule-frequency'}),
         }
     
     def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        # Make the parameters field optional and add helper text
-        self.fields['parameters'].required = False
-        self.fields['parameters'].help_text = 'Enter JSON parameters for the report (optional)'
+        # Filter company and cleaner choices
+        self.fields['company'].queryset = CompanyProfile.objects.all().order_by('company_name')
+        self.fields['cleaner'].queryset = CleanerProfile.objects.all().order_by('user__first_name')
         
-        # Add frequency options for scheduled reports
-        self.fields['schedule_frequency'].choices = [
-            ('', 'Select Frequency'),
-            ('daily', 'Daily'),
-            ('weekly', 'Weekly'),
-            ('monthly', 'Monthly'),
-            ('quarterly', 'Quarterly'),
-        ]
+        # Make some fields optional
+        self.fields['schedule_frequency'].required = False
         
-        # Filter company and cleaner choices based on user role
-        if user:
-            if user.role == user.Role.COMPANY:
-                try:
-                    company = CompanyProfile.objects.get(user=user)
-                    self.fields['company'].initial = company
-                    self.fields['company'].widget.attrs['disabled'] = True
-                    self.fields['cleaner'].queryset = CleanerProfile.objects.filter(company=company)
-                except CompanyProfile.DoesNotExist:
-                    pass
-            elif user.role == user.Role.CLEANER:
-                try:
-                    cleaner = CleanerProfile.objects.get(user=user)
-                    self.fields['cleaner'].initial = cleaner
-                    self.fields['cleaner'].widget.attrs['disabled'] = True
-                    if cleaner.company:
-                        self.fields['company'].initial = cleaner.company
-                except CleanerProfile.DoesNotExist:
-                    pass
+        # Set field dependencies
+        self.fields['company'].help_text = _("Filter report data by company")
+        self.fields['cleaner'].help_text = _("Filter report data by cleaner")
     
-    def clean_parameters(self):
-        """Validate and clean the parameters JSON field."""
-        parameters = self.cleaned_data.get('parameters')
+    def clean(self):
+        """Validate form data."""
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+        period = cleaned_data.get('period')
+        is_scheduled = cleaned_data.get('is_scheduled')
+        schedule_frequency = cleaned_data.get('schedule_frequency')
         
-        if not parameters:
-            return {}
-            
-        # If it's already a dict, return it
-        if isinstance(parameters, dict):
-            return parameters
-            
-        # Otherwise, it's a string, so validate it's valid JSON
-        try:
-            import json
-            return json.loads(parameters)
-        except json.JSONDecodeError:
-            raise forms.ValidationError('Parameters must be valid JSON')
-
-
-class DashboardSavedViewForm(forms.ModelForm):
-    """Form for saving dashboard configurations."""
-    class Meta:
-        model = DashboardSavedView
-        fields = ['name', 'configuration', 'is_default']
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'configuration': forms.Textarea(attrs={'class': 'form-control json-editor', 'rows': 5}),
-            'is_default': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-        }
-    
-    def clean_configuration(self):
-        """Validate and clean the configuration JSON field."""
-        configuration = self.cleaned_data.get('configuration')
+        # Validate date range
+        if start_date and end_date and start_date > end_date:
+            self.add_error('start_date', _("Start date cannot be after end date"))
         
-        # If it's already a dict, return it
-        if isinstance(configuration, dict):
-            return configuration
-            
-        # Otherwise, it's a string, so validate it's valid JSON
-        try:
-            import json
-            return json.loads(configuration)
-        except json.JSONDecodeError:
-            raise forms.ValidationError('Configuration must be valid JSON')
+        # Validate scheduling options
+        if is_scheduled and not schedule_frequency:
+            self.add_error('schedule_frequency', _("Schedule frequency is required when scheduling is enabled"))
+        
+        return cleaned_data

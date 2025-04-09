@@ -1,555 +1,518 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{{ title }}{% endblock %}
-
-{% block extra_css %}
-<style>
-    .dashboard-card {
-        transition: all 0.3s ease;
-    }
-    
-    .dashboard-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-    }
-    
-    .widget-container {
-        margin-bottom: 20px;
-    }
-    
-    .chart-container {
-        position: relative;
-        height: 100%;
-        min-height: 250px;
-    }
-    
-    .filter-collapse {
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.3s ease-out;
-    }
-    
-    .filter-collapse.show {
-        max-height: 500px;
-    }
-</style>
-{% endblock %}
+{% block title %}Analytics Dashboard{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="container-fluid">
     <div class="row mb-4">
-        <div class="col-12 d-flex justify-content-between align-items-center">
-            <h1 class="h3 mb-0">{{ title }}</h1>
-            
+        <div class="col-md-8">
+            <h1 class="h2 mb-0">Analytics Dashboard</h1>
+            <p class="text-muted">Insights and reports for your business</p>
+        </div>
+        <div class="col-md-4 text-end">
             <div class="btn-group">
-                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
-                    <i class="fas fa-filter me-2"></i>Filters
+                <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-columns me-1"></i> Dashboard Views
                 </button>
-                
-                <div class="dropdown ms-2">
-                    <button class="btn btn-outline-primary dropdown-toggle" type="button" id="dropdownSavedViews" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-save me-2"></i>Saved Views
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownSavedViews">
-                        {% for view in saved_views %}
-                        <li><a class="dropdown-item {% if current_view and current_view.id == view.id %}active{% endif %}" href="{% url 'analytics:load_dashboard_view' view_id=view.id %}">{{ view.name }}</a></li>
-                        {% empty %}
-                        <li><span class="dropdown-item text-muted">No saved views</span></li>
-                        {% endfor %}
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'analytics:customize_dashboard' %}"><i class="fas fa-cog me-2"></i>Customize Dashboard</a></li>
-                    </ul>
-                </div>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    {% for view in saved_views %}
+                    <li>
+                        <a class="dropdown-item {% if view.is_default %}fw-bold{% endif %}" href="{% url 'analytics:load_dashboard_view' view.id %}">
+                            {{ view.name }}
+                            {% if view.is_default %}<span class="badge bg-primary ms-2">Default</span>{% endif %}
+                        </a>
+                    </li>
+                    {% endfor %}
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url 'analytics:customize_dashboard' %}"><i class="fas fa-cog me-1"></i> Customize Dashboard</a></li>
+                </ul>
             </div>
+            <a href="{% url 'analytics:reports_list' %}" class="btn btn-outline-primary ms-2">
+                <i class="fas fa-file-alt me-1"></i> Reports
+            </a>
         </div>
     </div>
-    
-    <div class="collapse mb-4" id="filterCollapse">
-        <div class="card card-body">
-            <form method="get" id="filterForm">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="{{ filter_form.period.id_for_label }}" class="form-label">Time Period</label>
-                            {{ filter_form.period }}
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="{{ filter_form.start_date.id_for_label }}" class="form-label">Start Date</label>
-                            {{ filter_form.start_date }}
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="{{ filter_form.end_date.id_for_label }}" class="form-label">End Date</label>
-                            {{ filter_form.end_date }}
-                        </div>
-                    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="dashboard-filters" method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="start-date" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="start-date" name="start_date" value="{{ start_date }}">
                 </div>
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="{{ filter_form.company.id_for_label }}" class="form-label">Company</label>
-                            {{ filter_form.company }}
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="{{ filter_form.cleaner.id_for_label }}" class="form-label">Cleaner</label>
-                            {{ filter_form.cleaner }}
-                        </div>
-                    </div>
+                <div class="col-md-3">
+                    <label for="end-date" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="end-date" name="end_date" value="{{ end_date }}">
                 </div>
-                
-                <div class="text-end">
-                    <button type="button" class="btn btn-outline-secondary me-2" id="resetFilters">Reset</button>
-                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                <div class="col-md-2">
+                    <label for="company-filter" class="form-label">Company</label>
+                    <select class="form-select" id="company-filter" name="company">
+                        <option value="">All Companies</option>
+                        {% for company in companies %}
+                        <option value="{{ company.id }}" {% if filter_company == company.id|stringformat:"s" %}selected{% endif %}>
+                            {{ company.company_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="cleaner-filter" class="form-label">Cleaner</label>
+                    <select class="form-select" id="cleaner-filter" name="cleaner">
+                        <option value="">All Cleaners</option>
+                        {% for cleaner in cleaners %}
+                        <option value="{{ cleaner.id }}" {% if filter_cleaner == cleaner.id|stringformat:"s" %}selected{% endif %}>
+                            {{ cleaner.user.get_full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-1"></i> Apply Filters
+                    </button>
                 </div>
             </form>
         </div>
     </div>
-    
-    <div id="dashboardContainer">
-        <!-- Dashboard content will be loaded here based on configuration -->
-        <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-left-primary h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Hours</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-hours">Loading...</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <p class="mt-2">Loading dashboard data...</p>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-left-success h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Active Contracts</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="active-contracts">Loading...</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-signature fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-left-info h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Time Entries</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="time-entries">Loading...</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-left-warning h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Total Contracts</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-contracts">Loading...</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-contract fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div class="dashboard-content" id="dashboard-grid">
+        {% for widget in config.widgets %}
+        <div class="dashboard-widget" 
+             data-type="{{ widget.type }}" 
+             data-position="{{ widget.position }}" 
+             data-size="{{ widget.size|default:'medium' }}">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0" id="title-{{ widget.type }}">
+                        {% if widget.type == 'time_summary' %}
+                            Time Tracking Summary
+                        {% elif widget.type == 'contract_status' %}
+                            Contract Status
+                        {% elif widget.type == 'cleaner_performance' %}
+                            Cleaner Performance
+                        {% elif widget.type == 'revenue_chart' %}
+                            Revenue Chart
+                        {% elif widget.type == 'customer_satisfaction' %}
+                            Customer Satisfaction
+                        {% elif widget.type == 'job_statistics' %}
+                            Job Statistics
+                        {% else %}
+                            Widget
+                        {% endif %}
+                    </h5>
+                    <div class="widget-controls">
+                        <button type="button" class="btn btn-sm btn-outline-secondary widget-refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body widget-body" id="body-{{ widget.type }}">
+                    <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Save Dashboard View Modal -->
+    <div class="modal fade" id="saveDashboardModal" tabindex="-1" aria-labelledby="saveDashboardModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="saveDashboardModalLabel">Save Dashboard View</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="save-dashboard-form">
+                        <div class="mb-3">
+                            <label for="view-name" class="form-label">View Name</label>
+                            <input type="text" class="form-control" id="view-name" required>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="default-view">
+                            <label class="form-check-label" for="default-view">Set as default view</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="save-dashboard-btn">Save View</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<!-- Include Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
-
 <script>
-    // Dashboard configuration
-    const dashboardConfig = {{ dashboard_config|safe }};
-    const filterData = {{ filter_data|safe }};
-    
-    // Store active charts
-    const activeCharts = {};
-    
-    // Main initialization
     document.addEventListener('DOMContentLoaded', function() {
-        initializeDashboard();
+        // Load summary data
+        loadSummaryData();
         
-        // Handle period selection
-        const periodSelect = document.getElementById('{{ filter_form.period.id_for_label }}');
-        const startDateInput = document.getElementById('{{ filter_form.start_date.id_for_label }}');
-        const endDateInput = document.getElementById('{{ filter_form.end_date.id_for_label }}');
+        // Load widget data
+        loadWidgetData();
         
-        if (periodSelect && startDateInput && endDateInput) {
-            periodSelect.addEventListener('change', function() {
-                if (this.value === 'custom') {
-                    startDateInput.disabled = false;
-                    endDateInput.disabled = false;
-                } else {
-                    startDateInput.disabled = true;
-                    endDateInput.disabled = true;
-                }
+        // Refresh button handler
+        document.querySelectorAll('.widget-refresh').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const widgetType = this.closest('.dashboard-widget').dataset.type;
+                refreshWidget(widgetType);
             });
-            
-            // Set initial state
-            if (periodSelect.value !== 'custom') {
-                startDateInput.disabled = true;
-                endDateInput.disabled = true;
-            }
-        }
+        });
         
-        // Reset filters button
-        const resetButton = document.getElementById('resetFilters');
-        if (resetButton) {
-            resetButton.addEventListener('click', function() {
-                const form = document.getElementById('filterForm');
-                const selects = form.querySelectorAll('select');
-                const inputs = form.querySelectorAll('input');
-                
-                selects.forEach(select => {
-                    select.selectedIndex = 0;
-                });
-                
-                inputs.forEach(input => {
-                    input.value = '';
-                });
-                
-                // Reset date input states
-                if (periodSelect && startDateInput && endDateInput) {
-                    startDateInput.disabled = true;
-                    endDateInput.disabled = true;
-                }
-            });
-        }
+        // Handle save dashboard view
+        document.getElementById('save-dashboard-btn').addEventListener('click', function() {
+            saveDashboardView();
+        });
     });
     
-    // Initialize dashboard layout and widgets
-    function initializeDashboard() {
-        const container = document.getElementById('dashboardContainer');
-        if (!container) return;
+    function loadSummaryData() {
+        const url = new URL('{% url "analytics:summary_data" %}', window.location.origin);
         
-        // Clear container
-        container.innerHTML = '';
+        // Add date filters
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
         
-        // Create layout
-        const layout = dashboardConfig.layout || 'grid';
+        if (startDate) url.searchParams.append('start_date', startDate);
+        if (endDate) url.searchParams.append('end_date', endDate);
         
-        if (layout === 'grid') {
-            createGridLayout(container);
-        } else if (layout === 'list') {
-            createListLayout(container);
-        } else {
-            // Default to grid
-            createGridLayout(container);
-        }
-    }
-    
-    // Create grid layout (widgets arranged in a grid)
-    function createGridLayout(container) {
-        // Create summary widget container if it exists in config
-        const summaryWidget = dashboardConfig.widgets.find(w => w.id === 'summary');
-        if (summaryWidget) {
-            const summaryRow = document.createElement('div');
-            summaryRow.className = 'row mb-4';
-            summaryRow.id = 'summaryRow';
-            container.appendChild(summaryRow);
-            
-            loadWidget('summary', summaryRow, 12);
-        }
+        // Add other filters
+        const companyFilter = document.getElementById('company-filter').value;
+        const cleanerFilter = document.getElementById('cleaner-filter').value;
         
-        // Create main widgets row
-        const widgetsRow = document.createElement('div');
-        widgetsRow.className = 'row';
-        container.appendChild(widgetsRow);
+        if (companyFilter) url.searchParams.append('company', companyFilter);
+        if (cleanerFilter) url.searchParams.append('cleaner', cleanerFilter);
         
-        // Add widgets (excluding summary which is already added)
-        const widgets = dashboardConfig.widgets.filter(w => w.id !== 'summary')
-            .sort((a, b) => (a.position || 0) - (b.position || 0));
-        
-        for (const widget of widgets) {
-            loadWidget(widget.id, widgetsRow, widget.width || 6);
-        }
-    }
-    
-    // Create list layout (widgets stacked vertically)
-    function createListLayout(container) {
-        const widgets = dashboardConfig.widgets.sort((a, b) => (a.position || 0) - (b.position || 0));
-        
-        for (const widget of widgets) {
-            const widgetRow = document.createElement('div');
-            widgetRow.className = 'row mb-4';
-            container.appendChild(widgetRow);
-            
-            loadWidget(widget.id, widgetRow, 12);
-        }
-    }
-    
-    // Load a widget into a container
-    function loadWidget(widgetId, container, colWidth) {
-        const col = document.createElement('div');
-        col.className = `col-lg-${colWidth} mb-4`;
-        container.appendChild(col);
-        
-        const widgetContainer = document.createElement('div');
-        widgetContainer.className = 'widget-container';
-        widgetContainer.id = `widget-${widgetId}`;
-        col.appendChild(widgetContainer);
-        
-        // Add loading spinner
-        widgetContainer.innerHTML = `
-            <div class="card shadow-sm h-100">
-                <div class="card-body text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-2">Loading widget...</p>
-                </div>
-            </div>
-        `;
-        
-        // Load widget content
-        if (widgetId === 'summary') {
-            loadSummaryWidget(widgetContainer);
-        } else if (widgetId === 'contract_status') {
-            loadChartWidget(widgetContainer, 'contract_status');
-        } else if (widgetId === 'revenue') {
-            loadChartWidget(widgetContainer, 'revenue');
-        } else if (widgetId === 'cleaner_performance') {
-            loadChartWidget(widgetContainer, 'cleaner_performance');
-        } else if (widgetId === 'customer_satisfaction') {
-            loadChartWidget(widgetContainer, 'customer_satisfaction');
-        } else if (widgetId === 'time_tracking') {
-            loadChartWidget(widgetContainer, 'time_tracking');
-        } else if (widgetId === 'job_statistics') {
-            loadChartWidget(widgetContainer, 'job_statistics');
-        } else {
-            widgetContainer.innerHTML = `
-                <div class="card shadow-sm h-100">
-                    <div class="card-body text-center py-5">
-                        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-                        <h5>Unknown Widget</h5>
-                        <p>Widget "${widgetId}" is not available</p>
-                    </div>
-                </div>
-            `;
-        }
-    }
-    
-    // Load summary cards widget
-    function loadSummaryWidget(container) {
-        fetch(`/analytics/api/summary-data/?${getFilterParams()}`)
+        fetch(url)
             .then(response => response.json())
             .then(data => {
-                if (data.error) {
-                    showWidgetError(container, data.error);
-                    return;
-                }
-                
-                // Create cards
-                let html = '<div class="row">';
-                
-                for (const card of data.cards) {
-                    html += `
-                        <div class="col-md-4 col-lg-2 mb-4">
-                            <div class="card dashboard-card text-white bg-${card.color} h-100">
-                                <div class="card-body p-3">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h6 class="card-title mb-0">${card.title}</h6>
-                                            <h3 class="mt-2 mb-0">${card.value}</h3>
-                                        </div>
-                                        <div>
-                                            <i class="fas ${card.icon} fa-2x opacity-50"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                html += '</div>';
-                container.innerHTML = html;
+                document.getElementById('total-hours').textContent = data.time_tracking.total_hours;
+                document.getElementById('time-entries').textContent = data.time_tracking.total_records;
+                document.getElementById('active-contracts').textContent = data.contracts.active;
+                document.getElementById('total-contracts').textContent = data.contracts.total;
             })
             .catch(error => {
-                showWidgetError(container, 'Failed to load summary data');
                 console.error('Error loading summary data:', error);
             });
     }
     
-    // Load chart widget
-    function loadChartWidget(container, chartType) {
-        fetch(`/analytics/api/chart-data/${chartType}/?${getFilterParams()}`)
+    function loadWidgetData() {
+        document.querySelectorAll('.dashboard-widget').forEach(function(widget) {
+            const widgetType = widget.dataset.type;
+            loadWidget(widgetType);
+        });
+    }
+    
+    function loadWidget(widgetType) {
+        // For demonstration, we'll load charts based on widget type
+        if (widgetType === 'time_summary' || widgetType === 'revenue_chart') {
+            loadChartData('hours_worked', widgetType);
+        } else if (widgetType === 'contract_status') {
+            loadChartData('contract_status', widgetType);
+        } else {
+            // For other widget types, load from corresponding endpoints
+            loadWidgetContent(widgetType);
+        }
+    }
+    
+    function loadChartData(chartType, widgetType) {
+        const url = new URL(`{% url "analytics:chart_data" "placeholder" %}`.replace('placeholder', chartType), window.location.origin);
+        
+        // Add filters
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+        
+        if (startDate) url.searchParams.append('start_date', startDate);
+        if (endDate) url.searchParams.append('end_date', endDate);
+        
+        const companyFilter = document.getElementById('company-filter').value;
+        const cleanerFilter = document.getElementById('cleaner-filter').value;
+        
+        if (companyFilter) url.searchParams.append('company', companyFilter);
+        if (cleanerFilter) url.searchParams.append('cleaner', cleanerFilter);
+        
+        fetch(url)
             .then(response => response.json())
             .then(data => {
-                if (data.error) {
-                    showWidgetError(container, data.error);
-                    return;
-                }
-                
-                // Create chart container
-                const chartTitle = data.title || titleCase(chartType.replace('_', ' '));
-                
-                container.innerHTML = `
-                    <div class="card shadow-sm h-100">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">${chartTitle}</h5>
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownChart${chartType}" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-ellipsis-v"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownChart${chartType}">
-                                    <li><a class="dropdown-item refresh-chart" href="#" data-chart="${chartType}"><i class="fas fa-sync-alt me-2"></i>Refresh</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'analytics:reports_list' %}"><i class="fas fa-file-alt me-2"></i>View Reports</a></li>
-                                </ul>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="chart-container">
-                                <canvas id="chart-${chartType}"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                // Create chart
-                createChart(chartType, data);
-                
-                // Add refresh handler
-                const refreshBtn = container.querySelector('.refresh-chart');
-                if (refreshBtn) {
-                    refreshBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        refreshChart(chartType);
-                    });
-                }
+                renderChart(data, widgetType, chartType);
             })
             .catch(error => {
-                showWidgetError(container, 'Failed to load chart data');
-                console.error(`Error loading ${chartType} chart:`, error);
+                console.error(`Error loading chart data for ${widgetType}:`, error);
+                const widgetBody = document.getElementById(`body-${widgetType}`);
+                widgetBody.innerHTML = `<div class="alert alert-danger">Error loading data</div>`;
             });
     }
     
-    // Create Chart.js chart
-    function createChart(chartType, data) {
-        const chartElement = document.getElementById(`chart-${chartType}`);
-        if (!chartElement) return;
+    function loadWidgetContent(widgetType) {
+        const url = new URL(`{% url "analytics:widgets" "placeholder" %}`.replace('placeholder', `${widgetType}_widget`), window.location.origin);
         
-        // Destroy existing chart if it exists
-        if (activeCharts[chartType]) {
-            activeCharts[chartType].destroy();
-        }
+        // Add filters
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
         
-        // Set chart type
-        const type = data.chart_type || 'bar';
+        if (startDate) url.searchParams.append('start_date', startDate);
+        if (endDate) url.searchParams.append('end_date', endDate);
         
-        // Create chart configuration
-        const chartConfig = {
-            type: type,
-            data: {
-                labels: data.labels || [],
-                datasets: data.datasets || []
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    title: {
-                        display: false
-                    }
-                }
-            }
-        };
+        const companyFilter = document.getElementById('company-filter').value;
+        const cleanerFilter = document.getElementById('cleaner-filter').value;
         
-        // Merge in any additional options
-        if (data.options) {
-            chartConfig.options = { ...chartConfig.options, ...data.options };
-        }
+        if (companyFilter) url.searchParams.append('company', companyFilter);
+        if (cleanerFilter) url.searchParams.append('cleaner', cleanerFilter);
         
-        // Create the chart
-        activeCharts[chartType] = new Chart(chartElement, chartConfig);
-    }
-    
-    // Refresh chart data
-    function refreshChart(chartType) {
-        const container = document.getElementById(`widget-${chartType}`);
-        if (!container) return;
-        
-        // Show loading state
-        const chartContainer = container.querySelector('.chart-container');
-        if (chartContainer) {
-            chartContainer.innerHTML = `
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-2">Refreshing data...</p>
-                </div>
-            `;
-        }
-        
-        // Destroy old chart
-        if (activeCharts[chartType]) {
-            activeCharts[chartType].destroy();
-            delete activeCharts[chartType];
-        }
-        
-        // Reload chart
-        fetch(`/analytics/api/chart-data/${chartType}/?${getFilterParams()}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    if (chartContainer) {
-                        chartContainer.innerHTML = `
-                            <div class="text-center py-5">
-                                <i class="fas fa-exclamation-circle fa-3x text-danger mb-3"></i>
-                                <h5>Error</h5>
-                                <p>${data.error}</p>
-                            </div>
-                        `;
-                    }
-                    return;
-                }
-                
-                // Recreate chart container
-                if (chartContainer) {
-                    chartContainer.innerHTML = `<canvas id="chart-${chartType}"></canvas>`;
-                    
-                    // Create new chart
-                    createChart(chartType, data);
-                }
+        fetch(url)
+            .then(response => response.text())
+            .then(html => {
+                const widgetBody = document.getElementById(`body-${widgetType}`);
+                widgetBody.innerHTML = html;
             })
             .catch(error => {
-                if (chartContainer) {
-                    chartContainer.innerHTML = `
-                        <div class="text-center py-5">
-                            <i class="fas fa-exclamation-circle fa-3x text-danger mb-3"></i>
-                            <h5>Error</h5>
-                            <p>Failed to refresh chart data</p>
-                        </div>
-                    `;
-                }
-                console.error(`Error refreshing ${chartType} chart:`, error);
+                console.error(`Error loading widget content for ${widgetType}:`, error);
+                const widgetBody = document.getElementById(`body-${widgetType}`);
+                widgetBody.innerHTML = `<div class="alert alert-danger">Error loading widget content</div>`;
             });
     }
     
-    // Show error message in widget
-    function showWidgetError(container, message) {
-        container.innerHTML = `
-            <div class="card shadow-sm h-100">
-                <div class="card-body text-center py-5">
-                    <i class="fas fa-exclamation-circle fa-3x text-danger mb-3"></i>
-                    <h5>Error</h5>
-                    <p>${message}</p>
+    function renderChart(data, widgetType, chartType) {
+        const widgetBody = document.getElementById(`body-${widgetType}`);
+        
+        // Clear previous content
+        widgetBody.innerHTML = '<canvas id="chart-' + widgetType + '"></canvas>';
+        
+        const canvas = document.getElementById('chart-' + widgetType);
+        const ctx = canvas.getContext('2d');
+        
+        let chartConfig;
+        
+        if (chartType === 'hours_worked') {
+            chartConfig = {
+                type: 'line',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Hours Worked Over Time'
+                        }
+                    }
+                }
+            };
+        } else if (chartType === 'contract_status') {
+            chartConfig = {
+                type: 'pie',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Contract Status Distribution'
+                        }
+                    }
+                }
+            };
+        }
+        
+        new Chart(ctx, chartConfig);
+    }
+    
+    function refreshWidget(widgetType) {
+        const widgetBody = document.getElementById(`body-${widgetType}`);
+        
+        // Show loading spinner
+        widgetBody.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
                 </div>
             </div>
         `;
+        
+        // Reload widget data
+        loadWidget(widgetType);
     }
     
-    // Get filter parameters as URL query string
-    function getFilterParams() {
-        let params = new URLSearchParams();
+    function saveDashboardView() {
+        const viewName = document.getElementById('view-name').value;
+        const isDefault = document.getElementById('default-view').checked;
         
-        for (const [key, value] of Object.entries(filterData)) {
-            if (value) {
-                if (key === 'start_date' || key === 'end_date') {
-                    // Format date as YYYY-MM-DD
-                    if (value instanceof Date) {
-                        params.append(key, value.toISOString().split('T')[0]);
-                    } else {
-                        params.append(key, value);
-                    }
-                } else if (typeof value === 'object' && value.id) {
-                    // Handle model objects
-                    params.append(key, value.id);
-                } else {
-                    params.append(key, value);
-                }
-            }
+        if (!viewName) {
+            alert('Please enter a name for this view');
+            return;
         }
         
-        return params.toString();
-    }
-    
-    // Helper function to convert string to title case
-    function titleCase(str) {
-        return str.replace(
-            /\w\S*/g,
-            function(txt) {
-                return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+        // Collect current configuration
+        const widgets = [];
+        document.querySelectorAll('.dashboard-widget').forEach(function(widget, index) {
+            widgets.push({
+                type: widget.dataset.type,
+                position: index + 1,
+                size: widget.dataset.size || 'medium'
+            });
+        });
+        
+        const configuration = {
+            layout: 'grid',
+            widgets: widgets
+        };
+        
+        // Send to server
+        fetch('{% url "analytics:save_dashboard_view" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: new URLSearchParams({
+                'view_name': viewName,
+                'is_default': isDefault,
+                'configuration': JSON.stringify(configuration)
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal and reload page to show new view in dropdown
+                const modal = bootstrap.Modal.getInstance(document.getElementById('saveDashboardModal'));
+                modal.hide();
+                window.location.reload();
+            } else {
+                alert('Error saving view: ' + (data.error || 'Unknown error'));
             }
-        );
+        })
+        .catch(error => {
+            console.error('Error saving dashboard view:', error);
+            alert('Error saving view. Please try again.');
+        });
     }
 </script>
+
+<style>
+    .dashboard-content {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        grid-gap: 15px;
+    }
+    
+    .dashboard-widget[data-size="small"] {
+        grid-column: span 3;
+    }
+    
+    .dashboard-widget[data-size="medium"] {
+        grid-column: span 6;
+    }
+    
+    .dashboard-widget[data-size="large"] {
+        grid-column: span 8;
+    }
+    
+    .dashboard-widget[data-size="full"] {
+        grid-column: span 12;
+    }
+    
+    @media (max-width: 992px) {
+        .dashboard-widget {
+            grid-column: span 12 !important;
+        }
+    }
+    
+    .border-left-primary {
+        border-left: 4px solid #0052CC !important;
+    }
+    
+    .border-left-success {
+        border-left: 4px solid #00875A !important;
+    }
+    
+    .border-left-info {
+        border-left: 4px solid #6554C0 !important;
+    }
+    
+    .border-left-warning {
+        border-left: 4px solid #FFAB00 !important;
+    }
+</style>
 {% endblock %}

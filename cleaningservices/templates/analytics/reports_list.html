@@ -1,213 +1,138 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}Analytics Reports{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="row mb-4">
-        <div class="col-12 d-flex justify-content-between align-items-center">
-            <h1 class="h3 mb-0">{{ title }}</h1>
-            
-            <div>
-                <a href="{% url 'analytics:dashboard' %}" class="btn btn-outline-secondary me-2">
-                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
-                </a>
-                <a href="{% url 'analytics:create_report' %}" class="btn btn-primary">
-                    <i class="fas fa-plus me-2"></i>Create Report
-                </a>
-            </div>
-        </div>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2 mb-0">Analytics Reports</h1>
+        <a href="{% url 'analytics:create_report' %}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-1"></i> Create New Report
+        </a>
     </div>
     
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Filter Reports</h5>
-                </div>
-                <div class="card-body">
-                    <form method="get">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label for="report_type" class="form-label">Report Type</label>
-                                    <select name="report_type" id="report_type" class="form-select">
-                                        <option value="">All Report Types</option>
-                                        {% for value, label in report_types %}
-                                        <option value="{{ value }}" {% if request.GET.report_type == value %}selected{% endif %}>{{ label }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label for="period" class="form-label">Period</label>
-                                    <select name="period" id="period" class="form-select">
-                                        <option value="">All Periods</option>
-                                        {% for value, label in period_choices %}
-                                        <option value="{{ value }}" {% if request.GET.period == value %}selected{% endif %}>{{ label }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-4 d-flex align-items-end">
-                                <div class="mb-3 w-100">
-                                    <button type="submit" class="btn btn-primary w-100">
-                                        <i class="fas fa-filter me-2"></i>Apply Filters
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Title</th>
-                                    <th>Type</th>
-                                    <th>Period</th>
-                                    <th>Date Range</th>
-                                    <th>Scheduled</th>
-                                    <th>Created</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for report in page_obj %}
+    {% if page_obj %}
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Type</th>
+                                <th>Date Range</th>
+                                <th>Created</th>
+                                <th>Scheduled</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in page_obj %}
                                 <tr>
                                     <td>
-                                        <a href="{% url 'analytics:report_detail' report_id=report.id %}">{{ report.title }}</a>
+                                        <a href="{% url 'analytics:report_detail' report.id %}">
+                                            {{ report.title }}
+                                        </a>
                                     </td>
-                                    <td>
-                                        {% for value, label in report_types %}
-                                        {% if value == report.report_type %}
-                                        {{ label }}
-                                        {% endif %}
-                                        {% endfor %}
-                                    </td>
-                                    <td>
-                                        {% for value, label in period_choices %}
-                                        {% if value == report.period %}
-                                        {{ label }}
-                                        {% endif %}
-                                        {% endfor %}
-                                    </td>
+                                    <td>{{ report.get_report_type_display }}</td>
                                     <td>{{ report.start_date|date:"M d, Y" }} - {{ report.end_date|date:"M d, Y" }}</td>
-                                    <td>
-                                        {% if report.is_scheduled %}
-                                        <span class="badge bg-success">Yes</span>
-                                        {% else %}
-                                        <span class="badge bg-secondary">No</span>
-                                        {% endif %}
-                                    </td>
                                     <td>{{ report.created_at|date:"M d, Y" }}</td>
                                     <td>
-                                        <div class="btn-group">
-                                            <a href="{% url 'analytics:report_detail' report_id=report.id %}" class="btn btn-sm btn-outline-primary" title="View">
+                                        {% if report.is_scheduled %}
+                                            <span class="badge bg-success">
+                                                {{ report.get_schedule_frequency_display }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">No</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'analytics:report_detail' report.id %}" class="btn btn-outline-primary">
                                                 <i class="fas fa-eye"></i>
                                             </a>
-                                            <a href="{% url 'analytics:edit_report' report_id=report.id %}" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                            <a href="{% url 'analytics:edit_report' report.id %}" class="btn btn-outline-primary">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <a href="{% url 'analytics:generate_report_pdf' report_id=report.id %}" class="btn btn-sm btn-outline-info" title="Download PDF">
+                                            <a href="{% url 'analytics:generate_report_pdf' report.id %}" class="btn btn-outline-primary">
                                                 <i class="fas fa-file-pdf"></i>
                                             </a>
-                                            <a href="{% url 'analytics:delete_report' report_id=report.id %}" class="btn btn-sm btn-outline-danger" title="Delete" 
-                                               onclick="return confirm('Are you sure you want to delete this report?');">
-                                                <i class="fas fa-trash"></i>
+                                            <a href="{% url 'analytics:delete_report' report.id %}" class="btn btn-outline-danger">
+                                                <i class="fas fa-trash-alt"></i>
                                             </a>
                                         </div>
                                     </td>
                                 </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="7" class="text-center py-4">
-                                        <i class="fas fa-file-alt fa-3x mb-3 text-muted"></i>
-                                        <h5>No Reports Found</h5>
-                                        <p class="text-muted">
-                                            {% if request.GET %}
-                                            No reports match your filter criteria. <a href="{% url 'analytics:reports_list' %}">Clear filters</a>
-                                            {% else %}
-                                            You haven't created any reports yet. <a href="{% url 'analytics:create_report' %}">Create your first report</a>
-                                            {% endif %}
-                                        </p>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    {% if page_obj.paginator.num_pages > 1 %}
-                    <nav aria-label="Reports pagination">
-                        <ul class="pagination justify-content-center">
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if page_obj.paginator.num_pages > 1 %}
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mt-4">
                             {% if page_obj.has_previous %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
-                                    <span aria-hidden="true">&laquo;&laquo;</span>
-                                </a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Previous">
-                                    <span aria-hidden="true">&laquo;</span>
-                                </a>
-                            </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1">&laquo; First</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                                </li>
                             {% else %}
-                            <li class="page-item disabled">
-                                <span class="page-link">&laquo;&laquo;</span>
-                            </li>
-                            <li class="page-item disabled">
-                                <span class="page-link">&laquo;</span>
-                            </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link">&laquo; First</span>
+                                </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link">Previous</span>
+                                </li>
                             {% endif %}
                             
-                            {% for num in page_obj.paginator.page_range %}
-                            {% if page_obj.number == num %}
-                            <li class="page-item active">
-                                <span class="page-link">{{ num }}</span>
-                            </li>
-                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
-                            </li>
-                            {% endif %}
+                            {% for i in page_obj.paginator.page_range %}
+                                {% if i == page_obj.number %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ i }}</span>
+                                    </li>
+                                {% elif i > page_obj.number|add:"-3" and i < page_obj.number|add:"3" %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                                    </li>
+                                {% endif %}
                             {% endfor %}
                             
                             {% if page_obj.has_next %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Next">
-                                    <span aria-hidden="true">&raquo;</span>
-                                </a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Last">
-                                    <span aria-hidden="true">&raquo;&raquo;</span>
-                                </a>
-                            </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
+                                </li>
                             {% else %}
-                            <li class="page-item disabled">
-                                <span class="page-link">&raquo;</span>
-                            </li>
-                            <li class="page-item disabled">
-                                <span class="page-link">&raquo;&raquo;</span>
-                            </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link">Next</span>
+                                </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link">Last &raquo;</span>
+                                </li>
                             {% endif %}
                         </ul>
                     </nav>
-                    {% endif %}
-                </div>
+                {% endif %}
             </div>
         </div>
-    </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <div class="mb-4">
+                    <i class="fas fa-chart-line fa-4x text-muted"></i>
+                </div>
+                <h4>No Analytics Reports Found</h4>
+                <p class="text-muted">Create your first report to analyze business performance</p>
+                <a href="{% url 'analytics:create_report' %}" class="btn btn-primary">
+                    <i class="fas fa-plus-circle me-1"></i> Create First Report
+                </a>
+            </div>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

@@ -68,9 +68,9 @@
                                     Contracts
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{% url 'contracts:contract_list' %}">My Contracts</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'contracts:list' %}">My Contracts</a></li>
                                     {% if user.role == 'COMPANY' %}
-                                        <li><a class="dropdown-item" href="{% url 'contracts:contract_create' %}">Create Contract</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'contracts:create' %}">Create Contract</a></li>
                                         <li><a class="dropdown-item" href="{% url 'contracts:template_list' %}">Contract Templates</a></li>
                                     {% endif %}
                                 </ul>
@@ -81,7 +81,7 @@
                                     Time Tracking
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{% url 'timetracking:time_entry_list' %}">Time Entries</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'timetracking:entry_list' %}">Time Entries</a></li>
                                     {% if user.role == 'CLEANER' %}
                                         <li><a class="dropdown-item" href="{% url 'timetracking:clock_in' %}">Clock In/Out</a></li>
                                     {% endif %}
@@ -89,6 +89,19 @@
                                     {% if user.role == 'COMPANY' %}
                                         <li><a class="dropdown-item" href="{% url 'timetracking:schedule_list' %}">Work Schedules</a></li>
                                     {% endif %}
+                                </ul>
+                            </li>
+                        {% endif %}
+                        
+                        {% if user.role == 'COMPANY' or user.is_staff %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    Analytics
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{% url 'analytics:dashboard' %}">Dashboard</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'analytics:reports_list' %}">Reports</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'analytics:customize_dashboard' %}">Customize Dashboard</a></li>
                                 </ul>
                             </li>
                         {% endif %}

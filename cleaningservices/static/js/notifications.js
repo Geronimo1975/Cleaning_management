@@ -11,8 +11,10 @@ const CHECK_INTERVAL = 30000; // 30 seconds
  * Initialize notifications system
  */
 function initNotifications() {
-    // Only run if the user is logged in
-    if (!document.getElementById('notification-dropdown')) {
+    // Only run if the user is logged in and notification dropdown exists
+    const notificationDropdown = document.getElementById('notification-dropdown');
+    if (!notificationDropdown) {
+        console.log("Notification dropdown not found, skipping notification initialization");
         return;
     }
     
@@ -50,11 +52,19 @@ function checkNewNotifications() {
             updateUnreadCount(data.count);
             
             // If we have new notifications, refresh the dropdown content
-            const currentCount = parseInt(document.getElementById('notification-badge').textContent) || 0;
-            if (data.count > currentCount) {
-                loadNotifications();
-                // Optionally play a sound or show a toast for new notifications
-                showNewNotificationToast();
+            const badge = document.getElementById('notification-badge');
+            if (badge) {
+                const currentCount = parseInt(badge.textContent) || 0;
+                if (data.count > currentCount) {
+                    loadNotifications();
+                    // Optionally play a sound or show a toast for new notifications
+                    showNewNotificationToast();
+                }
+            } else {
+                // If no badge exists yet but we have notifications, still load them
+                if (data.count > 0) {
+                    loadNotifications();
+                }
             }
         })
         .catch(error => {
@@ -182,11 +192,17 @@ function setupNotificationEvents() {
         markAllReadForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (!csrfToken) {
+                console.error('CSRF token not found');
+                return;
+            }
+            
             fetch(this.action, {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    'X-CSRFToken': csrfToken.value
                 },
                 body: new FormData(this)
             })
@@ -212,47 +228,57 @@ function setupNotificationEvents() {
     }
     
     // Individual notification items
-    document.querySelectorAll('.notification-dropdown-items .notification-item').forEach(item => {
-        // Handle AJAX marking as read when clicking a notification
-        item.addEventListener('click', function(e) {
-            // Only apply AJAX behavior if it's unread
-            if (!this.classList.contains('unread')) return;
-            
-            e.preventDefault();
-            
-            const url = this.getAttribute('href');
-            const notificationItem = this;
-            
-            fetch(url, {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
+    const notificationItems = document.querySelectorAll('.notification-dropdown-items .notification-item');
+    if (notificationItems.length > 0) {
+        notificationItems.forEach(item => {
+            // Handle AJAX marking as read when clicking a notification
+            item.addEventListener('click', function(e) {
+                // Only apply AJAX behavior if it's unread
+                if (!this.classList.contains('unread')) return;
+                
+                e.preventDefault();
+                
+                const url = this.getAttribute('href');
+                if (!url) {
+                    console.error('Notification item has no href attribute');
+                    return;
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Remove unread class
-                    notificationItem.classList.remove('unread');
-                    
-                    // Decrement the unread count
-                    const badge = document.getElementById('notification-badge');
-                    const currentCount = parseInt(badge.textContent);
-                    updateUnreadCount(currentCount - 1);
-                    
-                    // After a brief delay, navigate to the notification's action URL
-                    setTimeout(() => {
-                        window.location.href = notificationItem.getAttribute('data-action-url') || url;
-                    }, 300);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                // Fall back to regular navigation
-                window.location.href = url;
+                
+                const notificationItem = this;
+                
+                fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove unread class
+                        notificationItem.classList.remove('unread');
+                        
+                        // Decrement the unread count
+                        const badge = document.getElementById('notification-badge');
+                        if (badge) {
+                            const currentCount = parseInt(badge.textContent) || 0;
+                            updateUnreadCount(currentCount - 1);
+                        }
+                        
+                        // After a brief delay, navigate to the notification's action URL
+                        setTimeout(() => {
+                            window.location.href = notificationItem.getAttribute('data-action-url') || url;
+                        }, 300);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Fall back to regular navigation
+                    window.location.href = url;
+                });
             });
         });
-    });
+    }
 }
 
 /**
@@ -283,20 +309,27 @@ function showNewNotificationToast() {
                 </div>
             `;
             
-            // Append the toast container to the body
-            const toastContainer = document.createElement('div');
-            toastContainer.innerHTML = toastHtml;
-            document.body.appendChild(toastContainer);
-            
-            // Initialize and show the toast
-            const toast = new bootstrap.Toast(document.getElementById('notification-toast'));
-            
-            // Add click event to navigate to notifications page
-            document.getElementById('notification-toast').addEventListener('click', function() {
-                window.location.href = '/notifications/';
-            });
-            
-            toast.show();
+            try {
+                // Append the toast container to the body
+                const toastContainer = document.createElement('div');
+                toastContainer.innerHTML = toastHtml;
+                document.body.appendChild(toastContainer);
+                
+                // Initialize and show the toast
+                const newToastEl = document.getElementById('notification-toast');
+                if (newToastEl) {
+                    const toast = new bootstrap.Toast(newToastEl);
+                    
+                    // Add click event to navigate to notifications page
+                    newToastEl.addEventListener('click', function() {
+                        window.location.href = '/notifications/';
+                    });
+                    
+                    toast.show();
+                }
+            } catch (error) {
+                console.error('Error showing notification toast:', error);
+            }
         }
     }
     

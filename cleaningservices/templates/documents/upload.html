@@ -1,77 +1,92 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Upload Document | CleanConnect{% endblock %}
+{% block title %}Upload Document{% endblock %}
 
 {% block content %}
-<div class="container py-5">
+<div class="container my-5">
     <div class="row">
         <div class="col-lg-8 mx-auto">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
-                    <h1 class="h3 mb-0">Upload Document</h1>
+                    <h3 class="mb-0">Upload New Document</h3>
                 </div>
                 <div class="card-body">
-                    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
                         
-                        <div class="mb-4">
-                            <label for="id_title" class="form-label">Document Title<span class="text-danger">*</span></label>
+                        <div class="mb-3">
+                            <label for="id_title" class="form-label">Document Title</label>
                             <input type="text" name="title" id="id_title" class="form-control" required>
-                            <div class="invalid-feedback">Please provide a title.</div>
                         </div>
                         
-                        <div class="mb-4">
-                            <label for="id_category" class="form-label">Category<span class="text-danger">*</span></label>
+                        <div class="mb-3">
+                            <label for="id_category" class="form-label">Category</label>
                             <select name="category" id="id_category" class="form-select" required>
-                                <option value="" selected disabled>Select a category</option>
-                                {% for category in categories %}
-                                    <option value="{{ category.id }}">{{ category.name }}</option>
-                                {% endfor %}
+                                <option value="">Select a category</option>
+                                <option value="policy">Policy</option>
+                                <option value="procedure">Procedure</option>
+                                <option value="training">Training Material</option>
+                                <option value="contract">Contract Template</option>
+                                <option value="legal">Legal Document</option>
+                                <option value="cleaning_solution">Cleaning Solution</option>
+                                <option value="equipment">Equipment Manual</option>
+                                <option value="safety">Safety Guidelines</option>
+                                <option value="other">Other</option>
                             </select>
-                            <div class="invalid-feedback">Please select a category.</div>
                         </div>
                         
-                        <div class="mb-4">
-                            <label for="id_description" class="form-label">Description</label>
-                            <textarea name="description" id="id_description" class="form-control" rows="4"></textarea>
+                        <div class="mb-3">
+                            <label for="id_document_type" class="form-label">Document Type</label>
+                            <select name="document_type" id="id_document_type" class="form-select" required>
+                                <option value="">Select document type</option>
+                                <option value="general">General</option>
+                                <option value="employee">Employee</option>
+                                <option value="customer">Customer</option>
+                                <option value="company">Company</option>
+                                <option value="cleaning_solution">Cleaning Solution</option>
+                            </select>
                         </div>
                         
-                        <div class="mb-4">
-                            <label for="id_file" class="form-label">Document File (PDF)<span class="text-danger">*</span></label>
+                        <div class="mb-3">
+                            <label for="id_file" class="form-label">Document File (PDF only)</label>
                             <input type="file" name="file" id="id_file" class="form-control" accept=".pdf" required>
-                            <div class="invalid-feedback">Please upload a PDF file.</div>
-                            <div class="form-text">
-                                <i class="fas fa-info-circle me-1"></i> Maximum file size: 10MB
-                            </div>
+                            <div class="form-text">Maximum file size: 10MB</div>
                         </div>
                         
-                        <div class="mb-4">
+                        <div class="mb-3">
+                            <label for="id_description" class="form-label">Description</label>
+                            <textarea name="description" id="id_description" class="form-control" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_access_level" class="form-label">Access Level</label>
+                            <select name="access_level" id="id_access_level" class="form-select" required>
+                                <option value="public">Public - Available to all users</option>
+                                <option value="employee">Employee - Available to employees only</option>
+                                <option value="company">Company - Available to company members only</option>
+                                <option value="admin">Admin - Available to administrators only</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
                             <label for="id_tags" class="form-label">Tags</label>
-                            <input type="text" name="tags" id="id_tags" class="form-control" placeholder="Enter comma-separated tags">
-                            <div class="form-text">
-                                <i class="fas fa-tag me-1"></i> Example: payroll, contract, training
-                            </div>
+                            <input type="text" name="tags" id="id_tags" class="form-control" placeholder="Enter tags separated by commas">
+                            <div class="form-text">Tags help users find this document more easily</div>
                         </div>
                         
-                        <div class="mb-4">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="is_public" id="id_is_public">
-                                <label class="form-check-label" for="id_is_public">
-                                    Make this document visible to all users
-                                </label>
-                            </div>
-                            <div class="form-text">
-                                <i class="fas fa-lock me-1"></i> Private documents are only visible to administrators and document managers
-                            </div>
-                        </div>
-                        
-                        <div class="d-flex justify-content-end">
-                            <a href="{% url 'document_list' %}" class="btn btn-outline-secondary me-2">
-                                <i class="fas fa-times me-1"></i> Cancel
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-upload me-1"></i> Upload Document
-                            </button>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'documents:list' %}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Upload Document</button>
                         </div>
                     </form>
                 </div>
@@ -83,48 +98,18 @@
 
 {% block extra_js %}
 <script>
-    // Form validation
-    (function() {
-        'use strict';
+    // Add any JavaScript for the form here
+    document.addEventListener('DOMContentLoaded', function() {
+        // Example: Dynamically change available document types based on category
+        const categorySelect = document.getElementById('id_category');
+        const documentTypeSelect = document.getElementById('id_document_type');
         
-        document.addEventListener('DOMContentLoaded', function() {
-            // Fetch all forms we want to apply validation to
-            var forms = document.querySelectorAll('.needs-validation');
-            
-            // Loop over them and prevent submission
-            Array.prototype.slice.call(forms).forEach(function(form) {
-                form.addEventListener('submit', function(event) {
-                    if (!form.checkValidity()) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                    }
-                    form.classList.add('was-validated');
-                }, false);
-            });
-            
-            // File size validation
-            document.getElementById('id_file').addEventListener('change', function() {
-                const fileInput = this;
-                const maxSize = 10 * 1024 * 1024; // 10MB
-                
-                if (fileInput.files.length > 0) {
-                    const fileSize = fileInput.files[0].size;
-                    if (fileSize > maxSize) {
-                        alert('The file is too large. Maximum allowed size is 10MB.');
-                        fileInput.value = ''; // Clear the input
-                        return false;
-                    }
-                    
-                    // Check if file is PDF
-                    const fileType = fileInput.files[0].type;
-                    if (fileType !== 'application/pdf') {
-                        alert('Please upload a PDF file.');
-                        fileInput.value = ''; // Clear the input
-                        return false;
-                    }
-                }
-            });
+        categorySelect.addEventListener('change', function() {
+            if (this.value === 'cleaning_solution') {
+                // Show only cleaning solution related document types
+                documentTypeSelect.value = 'cleaning_solution';
+            }
         });
-    })();
+    });
 </script>
 {% endblock %}

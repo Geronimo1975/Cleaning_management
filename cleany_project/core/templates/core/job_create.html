@@ -1,0 +1,179 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Post a New Job - Cleany{% endblock %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-body p-4 p-md-5">
+                        <div class="text-center mb-4">
+                            <h2 class="fw-bold">Post a New Cleaning Job</h2>
+                            <p class="text-muted">Describe your cleaning needs and find the right professional</p>
+                        </div>
+                        
+                        <form method="post">
+                            {% csrf_token %}
+                            
+                            {% if form.non_field_errors %}
+                                <div class="alert alert-danger">
+                                    {% for error in form.non_field_errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.title.id_for_label }}" class="form-label">Job Title</label>
+                                <input type="text" name="{{ form.title.name }}" id="{{ form.title.id_for_label }}" class="form-control {% if form.title.errors %}is-invalid{% endif %}" value="{{ form.title.value|default:'' }}" required>
+                                {% if form.title.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.title.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">E.g., "Regular House Cleaning" or "Office Deep Cleaning"</div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <label for="{{ form.service_type.id_for_label }}" class="form-label">Service Type</label>
+                                    <select name="{{ form.service_type.name }}" id="{{ form.service_type.id_for_label }}" class="form-select {% if form.service_type.errors %}is-invalid{% endif %}" required>
+                                        <option value="" selected disabled>Select a service type</option>
+                                        {% for value, text in form.service_type.field.choices %}
+                                            <option value="{{ value }}" {% if form.service_type.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>{{ text }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    {% if form.service_type.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.service_type.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.job_type.id_for_label }}" class="form-label">Job Type</label>
+                                    <select name="{{ form.job_type.name }}" id="{{ form.job_type.id_for_label }}" class="form-select {% if form.job_type.errors %}is-invalid{% endif %}" required>
+                                        {% for value, text in form.job_type.field.choices %}
+                                            <option value="{{ value }}" {% if form.job_type.value == value %}selected{% endif %}>{{ text }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    {% if form.job_type.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.job_type.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">One-time service or regular contract</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                                <textarea name="{{ form.description.name }}" id="{{ form.description.id_for_label }}" class="form-control {% if form.description.errors %}is-invalid{% endif %}" rows="4" required>{{ form.description.value|default:'' }}</textarea>
+                                {% if form.description.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.description.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Provide details about the space, specific cleaning needs, and any special requirements.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.location.id_for_label }}" class="form-label">Location</label>
+                                <input type="text" name="{{ form.location.name }}" id="{{ form.location.id_for_label }}" class="form-control {% if form.location.errors %}is-invalid{% endif %}" value="{{ form.location.value|default:'' }}" required>
+                                {% if form.location.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.location.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Enter a full address or general area</div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <label for="{{ form.start_datetime.id_for_label }}" class="form-label">Start Date & Time</label>
+                                    <input type="datetime-local" name="{{ form.start_datetime.name }}" id="{{ form.start_datetime.id_for_label }}" class="form-control {% if form.start_datetime.errors %}is-invalid{% endif %}" value="{{ form.start_datetime.value|date:'Y-m-d\TH:i'|default:'' }}" required>
+                                    {% if form.start_datetime.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.start_datetime.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.price.id_for_label }}" class="form-label">Your Budget (€)</label>
+                                    <input type="number" name="{{ form.price.name }}" id="{{ form.price.id_for_label }}" class="form-control {% if form.price.errors %}is-invalid{% endif %}" value="{{ form.price.value|default:'' }}" min="0" step="0.01" required>
+                                    {% if form.price.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.price.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Your total budget or hourly rate</div>
+                                </div>
+                            </div>
+                            
+                            <div id="recurring-section" class="mb-4 {% if form.job_type.value != 'CONTRACT' %}d-none{% endif %}">
+                                <label for="{{ form.recurring_frequency.id_for_label }}" class="form-label">Recurring Frequency (days)</label>
+                                <input type="number" name="{{ form.recurring_frequency.name }}" id="{{ form.recurring_frequency.id_for_label }}" class="form-control {% if form.recurring_frequency.errors %}is-invalid{% endif %}" value="{{ form.recurring_frequency.value|default:'0' }}" min="0" step="1">
+                                {% if form.recurring_frequency.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.recurring_frequency.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    For regular contracts: How often should the service repeat?<br>
+                                    7 = weekly, 14 = bi-weekly, 30 = monthly, etc. Enter 0 for one-time jobs.
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg">Post Job</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const jobTypeSelect = document.getElementById('{{ form.job_type.id_for_label }}');
+        const recurringSection = document.getElementById('recurring-section');
+        const recurringInput = document.getElementById('{{ form.recurring_frequency.id_for_label }}');
+        
+        // Show/hide recurring section based on job type
+        function toggleRecurringSection() {
+            if (jobTypeSelect.value === 'CONTRACT') {
+                recurringSection.classList.remove('d-none');
+            } else {
+                recurringSection.classList.add('d-none');
+                recurringInput.value = 0;  // Reset value for one-time jobs
+            }
+        }
+        
+        jobTypeSelect.addEventListener('change', toggleRecurringSection);
+        
+        // Initialize on page load
+        toggleRecurringSection();
+    });
+</script>
+{% endblock %}
+{% endblock %}

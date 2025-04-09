@@ -1,0 +1,151 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Complete Cleaner Registration - Cleany{% endblock %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-body p-4 p-md-5">
+                        <div class="text-center mb-4">
+                            <h2 class="fw-bold">Complete Your Cleaner Profile</h2>
+                            <p class="text-muted">Provide additional information about your cleaning services</p>
+                        </div>
+                        
+                        <form method="post">
+                            {% csrf_token %}
+                            
+                            {% if form.non_field_errors %}
+                                <div class="alert alert-danger">
+                                    {% for error in form.non_field_errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.bio.id_for_label }}" class="form-label">Professional Bio</label>
+                                <textarea name="{{ form.bio.name }}" id="{{ form.bio.id_for_label }}" class="form-control {% if form.bio.errors %}is-invalid{% endif %}" rows="4">{{ form.bio.value|default:'' }}</textarea>
+                                {% if form.bio.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.bio.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Describe your skills, experience, and the services you offer.</div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <label for="{{ form.experience_years.id_for_label }}" class="form-label">Years of Experience</label>
+                                    <input type="number" name="{{ form.experience_years.name }}" id="{{ form.experience_years.id_for_label }}" class="form-control {% if form.experience_years.errors %}is-invalid{% endif %}" value="{{ form.experience_years.value|default:'0' }}" min="0" step="1" required>
+                                    {% if form.experience_years.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.experience_years.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.hourly_rate.id_for_label }}" class="form-label">Hourly Rate (€)</label>
+                                    <input type="number" name="{{ form.hourly_rate.name }}" id="{{ form.hourly_rate.id_for_label }}" class="form-control {% if form.hourly_rate.errors %}is-invalid{% endif %}" value="{{ form.hourly_rate.value|default:'15.00' }}" min="0" step="0.01" required>
+                                    {% if form.hourly_rate.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.hourly_rate.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Specializations</label>
+                                <div class="row g-3">
+                                    {% for checkbox in form.specializations %}
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                {{ checkbox.tag }}
+                                                <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                                    {{ checkbox.choice_label }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                {% if form.specializations.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.specializations.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="{{ form.is_available.name }}" id="{{ form.is_available.id_for_label }}" {% if form.is_available.value %}checked{% endif %}>
+                                    <label class="form-check-label" for="{{ form.is_available.id_for_label }}">Available for new jobs</label>
+                                </div>
+                                {% if form.is_available.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.is_available.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="company_select" class="form-label">Affiliated Company (Optional)</label>
+                                <select id="company_select" class="form-select" name="company">
+                                    <option value="">I'm an independent cleaner</option>
+                                    {% for company in companies %}
+                                        <option value="{{ company.id }}">{{ company.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Select a company if you're working with one, or leave blank if you're independent.</div>
+                            </div>
+                            
+                            <div class="row mb-4">
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <label for="{{ form.tax_id.id_for_label }}" class="form-label">Tax ID (Optional)</label>
+                                    <input type="text" name="{{ form.tax_id.name }}" id="{{ form.tax_id.id_for_label }}" class="form-control {% if form.tax_id.errors %}is-invalid{% endif %}" value="{{ form.tax_id.value|default:'' }}">
+                                    {% if form.tax_id.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.tax_id.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Your tax identification number if you're an independent contractor.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.social_security_number.id_for_label }}" class="form-label">Social Security Number (Optional)</label>
+                                    <input type="text" name="{{ form.social_security_number.name }}" id="{{ form.social_security_number.id_for_label }}" class="form-control {% if form.social_security_number.errors %}is-invalid{% endif %}" value="{{ form.social_security_number.value|default:'' }}">
+                                    {% if form.social_security_number.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.social_security_number.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Required for payroll if working with a company.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg">Complete Registration</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

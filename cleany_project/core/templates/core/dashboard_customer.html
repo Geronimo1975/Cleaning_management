@@ -1,0 +1,270 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Customer Dashboard - Cleany{% endblock %}
+
+{% block content %}
+<section class="py-4">
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="fw-bold">Customer Dashboard</h1>
+                <p class="lead">Welcome back, {{ request.user.get_full_name|default:request.user.username }}!</p>
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="{% url 'job_create' %}" class="btn btn-primary">
+                                <i class="fas fa-plus-circle me-2"></i>Post New Job
+                            </a>
+                            <a href="{% url 'job_list' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-search me-2"></i>Browse Services
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dashboard Overview -->
+        <div class="row mb-4">
+            <div class="col-md-6 col-lg-3 mb-3 mb-lg-0">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-primary-custom mb-2">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <h5 class="mb-0">Active Jobs</h5>
+                        <div class="display-6 fw-bold">{{ active_jobs.count }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3 mb-3 mb-lg-0">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-success mb-2">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h5 class="mb-0">Completed Jobs</h5>
+                        <div class="display-6 fw-bold">{{ completed_jobs.count }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3 mb-3 mb-md-0">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-warning mb-2">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <h5 class="mb-0">Your Rating</h5>
+                        <div class="display-6 fw-bold">
+                            {% with avg_rating=request.user.received_ratings.all|dictsort:"score"|cut:"score" %}
+                                {% if avg_rating %}
+                                    {{ avg_rating|floatformat:1 }}/5
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-info mb-2">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <h5 class="mb-0">Notifications</h5>
+                        <div class="display-6 fw-bold">{{ notifications.count }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Active Jobs -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Active Jobs</h5>
+                        {% if active_jobs %}
+                            <a href="{% url 'job_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        {% if active_jobs %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Service Type</th>
+                                            <th>Status</th>
+                                            <th>Date</th>
+                                            <th>Assigned To</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for job in active_jobs %}
+                                            <tr>
+                                                <td>
+                                                    <a href="{% url 'job_detail' pk=job.pk %}" class="text-decoration-none fw-medium">
+                                                        {{ job.title }}
+                                                    </a>
+                                                </td>
+                                                <td>{{ job.service_type.name }}</td>
+                                                <td>
+                                                    {% if job.status == "OPEN" %}
+                                                        <span class="badge bg-info">Open</span>
+                                                    {% elif job.status == "ASSIGNED" %}
+                                                        <span class="badge bg-primary">Assigned</span>
+                                                    {% elif job.status == "IN_PROGRESS" %}
+                                                        <span class="badge bg-warning">In Progress</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ job.start_datetime|date:"M d, Y" }}</td>
+                                                <td>
+                                                    {% if job.cleaner %}
+                                                        {{ job.cleaner.user.get_full_name }}
+                                                    {% elif job.company %}
+                                                        {{ job.company.name }}
+                                                    {% else %}
+                                                        <span class="text-muted">Not assigned</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <a href="{% url 'job_detail' pk=job.pk %}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                                <p class="mb-0">You don't have any active jobs at the moment.</p>
+                                <a href="{% url 'job_create' %}" class="btn btn-primary mt-3">Post a Job</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Completed Jobs -->
+        <div class="row">
+            <div class="col-md-8 mb-4 mb-md-0">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Recently Completed Jobs</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if completed_jobs %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Completed On</th>
+                                            <th>Cleaner</th>
+                                            <th>Rate</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for job in completed_jobs %}
+                                            <tr>
+                                                <td>
+                                                    <a href="{% url 'job_detail' pk=job.pk %}" class="text-decoration-none">
+                                                        {{ job.title }}
+                                                    </a>
+                                                </td>
+                                                <td>{{ job.end_datetime|date:"M d, Y" }}</td>
+                                                <td>
+                                                    {% if job.cleaner %}
+                                                        {{ job.cleaner.user.get_full_name }}
+                                                    {% else %}
+                                                        <span class="text-muted">N/A</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if job.cleaner %}
+                                                        {% if job.ratings.all %}
+                                                            <span class="text-success"><i class="fas fa-check-circle"></i> Rated</span>
+                                                        {% else %}
+                                                            <a href="{% url 'job_rate' job_id=job.pk %}" class="btn btn-sm btn-outline-warning">
+                                                                <i class="fas fa-star me-1"></i> Rate
+                                                            </a>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <span class="text-muted">N/A</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
+                                <p>You don't have any completed jobs yet.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Notifications -->
+            <div class="col-md-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Notifications</h5>
+                        <a href="{% url 'notifications_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if notifications %}
+                            <div class="list-group list-group-flush">
+                                {% for notification in notifications %}
+                                    <div class="list-group-item list-group-item-action">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-1">{{ notification.title }}</h6>
+                                            <small>{{ notification.created_at|timesince }} ago</small>
+                                        </div>
+                                        <p class="mb-1 small">{{ notification.message|truncatechars:100 }}</p>
+                                        {% if notification.related_job %}
+                                            <small>
+                                                <a href="{% url 'job_detail' pk=notification.related_job.pk %}" class="text-primary">
+                                                    View related job
+                                                </a>
+                                            </small>
+                                        {% endif %}
+                                        <div class="text-end mt-2">
+                                            <a href="{% url 'mark_notification_read' notification_id=notification.id %}?next=customer_dashboard" class="btn btn-sm btn-outline-secondary">
+                                                Mark as read
+                                            </a>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-bell fa-3x text-muted mb-3"></i>
+                                <p>You don't have any notifications.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,169 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Cleany - Professional Cleaning Service Platform{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="bg-primary-light py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-4 mb-lg-0">
+                <h1 class="display-4 fw-bold mb-3">Professional Cleaning Services at Your Fingertips</h1>
+                <p class="fs-5 mb-4">Connect with top cleaning professionals for your home or business. Quality service guaranteed.</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'job_create' %}" class="btn btn-primary btn-lg px-4 me-md-2">Post a Job</a>
+                    <a href="{% url 'job_list' %}" class="btn btn-outline-primary btn-lg px-4">Find Jobs</a>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="text-center">
+                    <svg class="img-fluid" width="500" height="300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 300">
+                        <rect width="500" height="300" fill="#f8f9fa" rx="10" ry="10"></rect>
+                        <circle cx="250" cy="150" r="80" fill="#0052CC" opacity="0.1"></circle>
+                        <path d="M320 100c-5-10-20-15-30-10-20 10-25 30-30 50-5 20-30 20-40 5-10-15-30-15-40 0-10 15-5 40 10 50 15 10 30 5 40-5 10-10 25-10 35 0 10 10 30 10 40-5 10-15 20-25 15-40-5-15-15-25-30-30-15-5-25 0-30 10" stroke="#0052CC" stroke-width="5" fill="none"></path>
+                        <path d="M200 170c-15-10-30-10-40 0-10 10-10 30 0 40 10 10 30 10 40 0 10-10 10-30 0-40" stroke="#00875A" stroke-width="5" fill="none"></path>
+                        <path d="M280 200c-10 0-20 5-25 15-5 10 0 25 10 30 10 5 25 0 30-10 5-10 0-25-10-30" stroke="#FF5630" stroke-width="5" fill="none"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Service Types Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Our Cleaning Services</h2>
+            <p class="lead">Find the perfect cleaning service for your needs</p>
+        </div>
+        
+        <div class="row g-4">
+            {% for service in service_types %}
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="text-center mb-3">
+                                <i class="fas fa-spray-can-sparkles fa-3x text-primary-custom"></i>
+                            </div>
+                            <h4 class="card-title text-center">{{ service.name }}</h4>
+                            <p class="card-text">{{ service.description }}</p>
+                            <p class="text-center text-primary-custom fw-bold">Starting from €{{ service.base_price }}</p>
+                        </div>
+                        <div class="card-footer bg-white border-0 text-center">
+                            <a href="{% url 'job_create' %}" class="btn btn-outline-primary">Book Now</a>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-12 text-center">
+                    <p>No services available at the moment. Please check back later.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- How It Works -->
+<section class="py-5 bg-neutral">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">How It Works</h2>
+            <p class="lead">Easy steps to get your space cleaned</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4 text-center">
+                <div class="bg-white rounded-circle mx-auto d-flex align-items-center justify-content-center mb-4" style="width: 100px; height: 100px;">
+                    <i class="fas fa-edit fa-3x text-primary-custom"></i>
+                </div>
+                <h4>1. Post a Job</h4>
+                <p>Describe your cleaning needs, location, and preferred schedule</p>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="bg-white rounded-circle mx-auto d-flex align-items-center justify-content-center mb-4" style="width: 100px; height: 100px;">
+                    <i class="fas fa-user-check fa-3x text-secondary-custom"></i>
+                </div>
+                <h4>2. Choose a Professional</h4>
+                <p>Review applications from qualified cleaning professionals and companies</p>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="bg-white rounded-circle mx-auto d-flex align-items-center justify-content-center mb-4" style="width: 100px; height: 100px;">
+                    <i class="fas fa-broom fa-3x text-accent"></i>
+                </div>
+                <h4>3. Get Cleaned</h4>
+                <p>Enjoy a sparkling clean space with guaranteed satisfaction</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Top Companies -->
+{% if top_companies %}
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Top Rated Cleaning Companies</h2>
+            <p class="lead">Our best-rated professional cleaning partners</p>
+        </div>
+        
+        <div class="row g-4">
+            {% for company in top_companies %}
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        {% if company.logo %}
+                            <img src="{{ company.logo.url }}" class="card-img-top p-3" alt="{{ company.name }}">
+                        {% else %}
+                            <div class="text-center p-4">
+                                <i class="fas fa-building fa-4x text-primary-custom"></i>
+                            </div>
+                        {% endif %}
+                        <div class="card-body">
+                            <h4 class="card-title">{{ company.name }}</h4>
+                            <div class="mb-2">
+                                {% with avg_rating=company.avg_rating|floatformat:1 %}
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= avg_rating|add:"0.5"|floatformat:"0"|add:"0" %}
+                                            <i class="fas fa-star text-warning"></i>
+                                        {% elif forloop.counter <= avg_rating|add:"0.5"|add:"0.5"|floatformat:"0"|add:"0" %}
+                                            <i class="fas fa-star-half-alt text-warning"></i>
+                                        {% else %}
+                                            <i class="far fa-star text-warning"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                    <span class="ms-1">{{ avg_rating }}/5</span>
+                                {% endwith %}
+                                <span class="ms-2">({{ company.num_ratings }} reviews)</span>
+                            </div>
+                            <p class="card-text">{{ company.description|truncatewords:20 }}</p>
+                            {% if company.specializations %}
+                                <div class="mb-2">
+                                    <strong>Specializes in:</strong>
+                                    <div>
+                                        {% for specialization in company.specializations %}
+                                            <span class="badge bg-light text-dark me-1">{{ specialization.name }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Call to Action -->
+<section class="py-5 bg-primary text-white text-center">
+    <div class="container">
+        <h2 class="fw-bold mb-3">Ready to get started?</h2>
+        <p class="lead mb-4">Join our platform today as a customer, company, or cleaner</p>
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+            <a href="{% url 'register' %}" class="btn btn-light btn-lg px-4">Sign Up Now</a>
+            <a href="{% url 'job_list' %}" class="btn btn-outline-light btn-lg px-4">Browse Jobs</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

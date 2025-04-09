@@ -1,0 +1,401 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Cleaner Dashboard - Cleany{% endblock %}
+
+{% block content %}
+<section class="py-4">
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="fw-bold">Cleaner Dashboard</h1>
+                <p class="lead">Welcome back, {{ request.user.get_full_name|default:request.user.username }}!</p>
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="{% url 'job_list' %}" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>Find Jobs
+                            </a>
+                            <a href="{% url 'timesheet_create' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-clock me-2"></i>Submit Timesheet
+                            </a>
+                            {% if profile.company %}
+                                <a href="{% url 'document_list' %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-file-alt me-2"></i>View Documents
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Availability Status -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">Your Availability Status:</h5>
+                            {% if profile.is_available %}
+                                <span class="badge bg-success fs-6 mt-2">Available for Jobs</span>
+                            {% else %}
+                                <span class="badge bg-secondary fs-6 mt-2">Not Available</span>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'profile' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-edit me-2"></i>Update Status
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dashboard Overview -->
+        <div class="row mb-4">
+            <div class="col-md-6 col-lg-3 mb-3 mb-lg-0">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-primary-custom mb-2">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <h5 class="mb-0">Active Jobs</h5>
+                        <div class="display-6 fw-bold">{{ assigned_jobs.count }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3 mb-3 mb-lg-0">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-secondary-custom mb-2">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <h5 class="mb-0">Applications</h5>
+                        <div class="display-6 fw-bold">{{ applications.count }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3 mb-3 mb-md-0">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-warning mb-2">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <h5 class="mb-0">Your Rating</h5>
+                        <div class="display-6 fw-bold">
+                            {% with avg_rating=request.user.received_ratings.all|dictsort:"score"|cut:"score" %}
+                                {% if avg_rating %}
+                                    {{ avg_rating|floatformat:1 }}/5
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-info mb-2">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <h5 class="mb-0">Hourly Rate</h5>
+                        <div class="display-6 fw-bold">€{{ profile.hourly_rate }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Assigned Jobs -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Your Assigned Jobs</h5>
+                        {% if assigned_jobs %}
+                            <a href="{% url 'job_list' %}" class="btn btn-sm btn-outline-primary">Find More Jobs</a>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        {% if assigned_jobs %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Customer</th>
+                                            <th>Company</th>
+                                            <th>Status</th>
+                                            <th>Date & Time</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for job in assigned_jobs %}
+                                            <tr>
+                                                <td>
+                                                    <a href="{% url 'job_detail' pk=job.pk %}" class="text-decoration-none fw-medium">
+                                                        {{ job.title }}
+                                                    </a>
+                                                </td>
+                                                <td>{{ job.customer.user.get_full_name }}</td>
+                                                <td>
+                                                    {% if job.company %}
+                                                        {{ job.company.name }}
+                                                    {% else %}
+                                                        <span class="text-muted">Direct</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if job.status == "ASSIGNED" %}
+                                                        <span class="badge bg-primary">Assigned</span>
+                                                    {% elif job.status == "IN_PROGRESS" %}
+                                                        <span class="badge bg-warning">In Progress</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ job.start_datetime|date:"M d, Y H:i" }}</td>
+                                                <td>
+                                                    {% if job.status == "ASSIGNED" %}
+                                                        <a href="{% url 'job_start' job_id=job.pk %}" class="btn btn-sm btn-success me-1">
+                                                            <i class="fas fa-play me-1"></i>Start
+                                                        </a>
+                                                    {% elif job.status == "IN_PROGRESS" %}
+                                                        <a href="{% url 'job_complete' job_id=job.pk %}" class="btn btn-sm btn-primary me-1">
+                                                            <i class="fas fa-check me-1"></i>Complete
+                                                        </a>
+                                                    {% endif %}
+                                                    <a href="{% url 'job_detail' pk=job.pk %}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                                <p class="mb-0">You don't have any assigned jobs at the moment.</p>
+                                <a href="{% url 'job_list' %}" class="btn btn-primary mt-3">Find Jobs</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Recent Timesheets -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Timesheets</h5>
+                        <a href="{% url 'timesheet_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_timesheets %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Job</th>
+                                            <th>Hours</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for timesheet in recent_timesheets %}
+                                            <tr>
+                                                <td>{{ timesheet.date|date:"M d, Y" }}</td>
+                                                <td>
+                                                    {% if timesheet.job %}
+                                                        <a href="{% url 'job_detail' pk=timesheet.job.pk %}" class="text-decoration-none">
+                                                            {{ timesheet.job.title|truncatechars:20 }}
+                                                        </a>
+                                                    {% else %}
+                                                        <span class="text-muted">N/A</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ timesheet.working_hours|floatformat:2 }}</td>
+                                                <td>
+                                                    {% if timesheet.approved_by_company %}
+                                                        <span class="badge bg-success">Approved</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">Pending</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-clock fa-3x text-muted mb-3"></i>
+                                <p>You haven't submitted any timesheets yet.</p>
+                                <a href="{% url 'timesheet_create' %}" class="btn btn-primary mt-2">Submit Timesheet</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Payrolls -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Payrolls</h5>
+                        <a href="{% url 'payroll_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_payrolls %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Period</th>
+                                            <th>Company</th>
+                                            <th>Amount</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for payroll in recent_payrolls %}
+                                            <tr>
+                                                <td>{{ payroll.period_start|date:"M d" }} - {{ payroll.period_end|date:"M d" }}</td>
+                                                <td>{{ payroll.company.name }}</td>
+                                                <td>€{{ payroll.net_amount }}</td>
+                                                <td>
+                                                    {% if payroll.status == "DRAFT" %}
+                                                        <span class="badge bg-secondary">Draft</span>
+                                                    {% elif payroll.status == "APPROVED" %}
+                                                        <span class="badge bg-primary">Approved</span>
+                                                    {% elif payroll.status == "PAID" %}
+                                                        <span class="badge bg-success">Paid</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-money-check-alt fa-3x text-muted mb-3"></i>
+                                <p>No payroll records found.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Recent Applications -->
+            <div class="col-md-7 mb-4 mb-md-0">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Recent Applications</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if applications %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Job</th>
+                                            <th>Customer</th>
+                                            <th>Price Offer</th>
+                                            <th>Status</th>
+                                            <th>Applied</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for application in applications %}
+                                            <tr>
+                                                <td>
+                                                    <a href="{% url 'job_detail' pk=application.job.pk %}" class="text-decoration-none">
+                                                        {{ application.job.title|truncatechars:20 }}
+                                                    </a>
+                                                </td>
+                                                <td>{{ application.job.customer.user.get_full_name }}</td>
+                                                <td>€{{ application.price_offer }}</td>
+                                                <td>
+                                                    {% if application.status == "PENDING" %}
+                                                        <span class="badge bg-info">Pending</span>
+                                                    {% elif application.status == "ACCEPTED" %}
+                                                        <span class="badge bg-success">Accepted</span>
+                                                    {% elif application.status == "REJECTED" %}
+                                                        <span class="badge bg-danger">Rejected</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ application.created_at|date:"M d, Y" }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                                <p>You haven't applied to any jobs yet.</p>
+                                <a href="{% url 'job_list' %}" class="btn btn-primary mt-2">Find Jobs</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Notifications -->
+            <div class="col-md-5">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Notifications</h5>
+                        <a href="{% url 'notifications_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if notifications %}
+                            <div class="list-group list-group-flush">
+                                {% for notification in notifications %}
+                                    <div class="list-group-item list-group-item-action">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-1">{{ notification.title }}</h6>
+                                            <small>{{ notification.created_at|timesince }} ago</small>
+                                        </div>
+                                        <p class="mb-1 small">{{ notification.message|truncatechars:100 }}</p>
+                                        {% if notification.related_job %}
+                                            <small>
+                                                <a href="{% url 'job_detail' pk=notification.related_job.pk %}" class="text-primary">
+                                                    View related job
+                                                </a>
+                                            </small>
+                                        {% endif %}
+                                        <div class="text-end mt-2">
+                                            <a href="{% url 'mark_notification_read' notification_id=notification.id %}?next=cleaner_dashboard" class="btn btn-sm btn-outline-secondary">
+                                                Mark as read
+                                            </a>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-bell fa-3x text-muted mb-3"></i>
+                                <p>You don't have any notifications.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

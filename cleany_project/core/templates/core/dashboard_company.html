@@ -1,0 +1,364 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Company Dashboard - Cleany{% endblock %}
+
+{% block content %}
+<section class="py-4">
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="fw-bold">Company Dashboard</h1>
+                <p class="lead">Welcome back, {{ profile.name }}!</p>
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="{% url 'job_list' %}" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>Find Jobs
+                            </a>
+                            <a href="{% url 'document_upload' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-file-upload me-2"></i>Upload Document
+                            </a>
+                            <a href="{% url 'payroll_create' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-money-check-alt me-2"></i>Create Payroll
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dashboard Overview -->
+        <div class="row mb-4">
+            <div class="col-md-6 col-lg-3 mb-3 mb-lg-0">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-primary-custom mb-2">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <h5 class="mb-0">Active Jobs</h5>
+                        <div class="display-6 fw-bold">{{ assigned_jobs.count }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3 mb-3 mb-lg-0">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-secondary-custom mb-2">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h5 class="mb-0">Cleaners</h5>
+                        <div class="display-6 fw-bold">{{ cleaners.count }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3 mb-3 mb-md-0">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-warning mb-2">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <h5 class="mb-0">Rating</h5>
+                        <div class="display-6 fw-bold">
+                            {% with avg_rating=request.user.received_ratings.all|dictsort:"score"|cut:"score" %}
+                                {% if avg_rating %}
+                                    {{ avg_rating|floatformat:1 }}/5
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-accent mb-2">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <h5 class="mb-0">Applications</h5>
+                        <div class="display-6 fw-bold">{{ open_applications.count }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Active Jobs -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Active Jobs</h5>
+                        {% if assigned_jobs %}
+                            <a href="{% url 'job_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        {% if assigned_jobs %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Customer</th>
+                                            <th>Assigned Cleaner</th>
+                                            <th>Status</th>
+                                            <th>Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for job in assigned_jobs %}
+                                            <tr>
+                                                <td>
+                                                    <a href="{% url 'job_detail' pk=job.pk %}" class="text-decoration-none fw-medium">
+                                                        {{ job.title }}
+                                                    </a>
+                                                </td>
+                                                <td>{{ job.customer.user.get_full_name }}</td>
+                                                <td>
+                                                    {% if job.cleaner %}
+                                                        {{ job.cleaner.user.get_full_name }}
+                                                    {% else %}
+                                                        <span class="badge bg-warning">Unassigned</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if job.status == "ASSIGNED" %}
+                                                        <span class="badge bg-primary">Assigned</span>
+                                                    {% elif job.status == "IN_PROGRESS" %}
+                                                        <span class="badge bg-warning">In Progress</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ job.start_datetime|date:"M d, Y" }}</td>
+                                                <td>
+                                                    <a href="{% url 'job_detail' pk=job.pk %}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                                <p class="mb-0">You don't have any active jobs at the moment.</p>
+                                <a href="{% url 'job_list' %}" class="btn btn-primary mt-3">Find Jobs</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Team/Cleaners -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Your Team</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if cleaners %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Experience</th>
+                                            <th>Hourly Rate</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for cleaner in cleaners %}
+                                            <tr>
+                                                <td>{{ cleaner.user.get_full_name }}</td>
+                                                <td>{{ cleaner.experience_years }} year{{ cleaner.experience_years|pluralize }}</td>
+                                                <td>€{{ cleaner.hourly_rate }}</td>
+                                                <td>
+                                                    {% if cleaner.is_available %}
+                                                        <span class="badge bg-success">Available</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">Unavailable</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                <p>You don't have any cleaners on your team yet.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Payrolls -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Payrolls</h5>
+                        <a href="{% url 'payroll_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_payrolls %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Cleaner</th>
+                                            <th>Period</th>
+                                            <th>Amount</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for payroll in recent_payrolls %}
+                                            <tr>
+                                                <td>{{ payroll.cleaner.user.get_full_name }}</td>
+                                                <td>{{ payroll.period_start|date:"M d" }} - {{ payroll.period_end|date:"M d" }}</td>
+                                                <td>€{{ payroll.net_amount }}</td>
+                                                <td>
+                                                    {% if payroll.status == "DRAFT" %}
+                                                        <span class="badge bg-secondary">Draft</span>
+                                                    {% elif payroll.status == "APPROVED" %}
+                                                        <span class="badge bg-primary">Approved</span>
+                                                    {% elif payroll.status == "PAID" %}
+                                                        <span class="badge bg-success">Paid</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-money-check-alt fa-3x text-muted mb-3"></i>
+                                <p>No recent payroll records.</p>
+                                <a href="{% url 'payroll_create' %}" class="btn btn-primary mt-2">Create Payroll</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Job Applications -->
+            <div class="col-md-7 mb-4 mb-md-0">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Open Applications</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if open_applications %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Job</th>
+                                            <th>Customer</th>
+                                            <th>Your Offer</th>
+                                            <th>Status</th>
+                                            <th>Applied</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for application in open_applications %}
+                                            <tr>
+                                                <td>
+                                                    <a href="{% url 'job_detail' pk=application.job.pk %}" class="text-decoration-none">
+                                                        {{ application.job.title }}
+                                                    </a>
+                                                </td>
+                                                <td>{{ application.job.customer.user.get_full_name }}</td>
+                                                <td>€{{ application.price_offer }}</td>
+                                                <td>
+                                                    <span class="badge bg-info">Pending</span>
+                                                </td>
+                                                <td>{{ application.created_at|date:"M d, Y" }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                                <p>You don't have any pending job applications.</p>
+                                <a href="{% url 'job_list' %}" class="btn btn-primary mt-2">Find Jobs</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Notifications -->
+            <div class="col-md-5">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Notifications</h5>
+                        <a href="{% url 'notifications_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if notifications %}
+                            <div class="list-group list-group-flush">
+                                {% for notification in notifications %}
+                                    <div class="list-group-item list-group-item-action">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-1">{{ notification.title }}</h6>
+                                            <small>{{ notification.created_at|timesince }} ago</small>
+                                        </div>
+                                        <p class="mb-1 small">{{ notification.message|truncatechars:100 }}</p>
+                                        {% if notification.related_job %}
+                                            <small>
+                                                <a href="{% url 'job_detail' pk=notification.related_job.pk %}" class="text-primary">
+                                                    View related job
+                                                </a>
+                                            </small>
+                                        {% endif %}
+                                        <div class="text-end mt-2">
+                                            <a href="{% url 'mark_notification_read' notification_id=notification.id %}?next=company_dashboard" class="btn btn-sm btn-outline-secondary">
+                                                Mark as read
+                                            </a>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-bell fa-3x text-muted mb-3"></i>
+                                <p>You don't have any notifications.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% block extra_js %}
+<!-- Add js for chart if needed -->
+<script>
+    // This could be expanded to show actual analytics in a future enhancement
+    document.addEventListener('DOMContentLoaded', function() {
+        // Chart initialization code would go here
+    });
+</script>
+{% endblock %}
+{% endblock %}

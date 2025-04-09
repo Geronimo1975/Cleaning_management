@@ -1,0 +1,128 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Complete Company Registration - Cleany{% endblock %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-body p-4 p-md-5">
+                        <div class="text-center mb-4">
+                            <h2 class="fw-bold">Complete Your Company Profile</h2>
+                            <p class="text-muted">Provide additional information about your cleaning company</p>
+                        </div>
+                        
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            
+                            {% if form.non_field_errors %}
+                                <div class="alert alert-danger">
+                                    {% for error in form.non_field_errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.name.id_for_label }}" class="form-label">Company Name</label>
+                                <input type="text" name="{{ form.name.name }}" id="{{ form.name.id_for_label }}" class="form-control {% if form.name.errors %}is-invalid{% endif %}" value="{{ form.name.value|default:'' }}" required>
+                                {% if form.name.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.name.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.description.id_for_label }}" class="form-label">Company Description</label>
+                                <textarea name="{{ form.description.name }}" id="{{ form.description.id_for_label }}" class="form-control {% if form.description.errors %}is-invalid{% endif %}" rows="4" required>{{ form.description.value|default:'' }}</textarea>
+                                {% if form.description.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.description.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Describe your company's services, experience, and expertise.</div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <label for="{{ form.registration_number.id_for_label }}" class="form-label">Registration Number</label>
+                                    <input type="text" name="{{ form.registration_number.name }}" id="{{ form.registration_number.id_for_label }}" class="form-control {% if form.registration_number.errors %}is-invalid{% endif %}" value="{{ form.registration_number.value|default:'' }}" required>
+                                    {% if form.registration_number.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.registration_number.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Your official company registration number.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.tax_id.id_for_label }}" class="form-label">Tax ID</label>
+                                    <input type="text" name="{{ form.tax_id.name }}" id="{{ form.tax_id.id_for_label }}" class="form-control {% if form.tax_id.errors %}is-invalid{% endif %}" value="{{ form.tax_id.value|default:'' }}" required>
+                                    {% if form.tax_id.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.tax_id.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Your company's tax identification number.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <label for="{{ form.founding_date.id_for_label }}" class="form-label">Founding Date</label>
+                                    <input type="date" name="{{ form.founding_date.name }}" id="{{ form.founding_date.id_for_label }}" class="form-control {% if form.founding_date.errors %}is-invalid{% endif %}" value="{{ form.founding_date.value|date:'Y-m-d'|default:'' }}" required>
+                                    {% if form.founding_date.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.founding_date.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.website.id_for_label }}" class="form-label">Website (Optional)</label>
+                                    <input type="url" name="{{ form.website.name }}" id="{{ form.website.id_for_label }}" class="form-control {% if form.website.errors %}is-invalid{% endif %}" value="{{ form.website.value|default:'' }}" placeholder="https://example.com">
+                                    {% if form.website.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.website.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="{{ form.logo.id_for_label }}" class="form-label">Company Logo (Optional)</label>
+                                <input type="file" name="{{ form.logo.name }}" id="{{ form.logo.id_for_label }}" class="form-control {% if form.logo.errors %}is-invalid{% endif %}" accept="image/*">
+                                {% if form.logo.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.logo.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Upload a company logo (max 2MB).</div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg">Complete Registration</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

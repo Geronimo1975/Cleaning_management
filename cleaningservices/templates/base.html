@@ -53,11 +53,11 @@
                                 Documents
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{% url 'document_list' %}">Browse Documents</a></li>
-                                <li><a class="dropdown-item" href="{% url 'chatbot' %}">Document Chatbot</a></li>
+                                <li><a class="dropdown-item" href="{% url 'documents:document_list' %}">Browse Documents</a></li>
+                                <li><a class="dropdown-item" href="{% url 'documents:chatbot' %}">Document Chatbot</a></li>
                                 {% if user.role == 'COMPANY' or user.is_staff %}
-                                <li><a class="dropdown-item" href="{% url 'upload_document' %}">Upload Document</a></li>
-                                <li><a class="dropdown-item" href="{% url 'manage_categories' %}">Manage Categories</a></li>
+                                <li><a class="dropdown-item" href="{% url 'documents:upload_document' %}">Upload Document</a></li>
+                                <li><a class="dropdown-item" href="{% url 'documents:manage_categories_view' %}">Manage Categories</a></li>
                                 {% endif %}
                             </ul>
                         </li>
@@ -148,8 +148,8 @@
                         {% if user.is_authenticated %}
                             <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
                             <li><a href="{% url 'job_list' %}">Jobs</a></li>
-                            <li><a href="{% url 'document_list' %}">Documents</a></li>
-                            <li><a href="{% url 'chatbot' %}">Document Chatbot</a></li>
+                            <li><a href="{% url 'documents:document_list' %}">Documents</a></li>
+                            <li><a href="{% url 'documents:chatbot' %}">Document Chatbot</a></li>
                         {% else %}
                             <li><a href="{% url 'login' %}">Login</a></li>
                             <li><a href="{% url 'register' %}">Register</a></li>
@@ -213,7 +213,7 @@
                     </div>
                 </div>
                 <div class="chatbot-input">
-                    <form id="chatbot-form" method="post" action="{% url 'chatbot_send_message' %}">
+                    <form id="chatbot-form" method="post" action="{% url 'documents:chatbot_send_message' %}">
                         {% csrf_token %}
                         <input type="hidden" name="conversation_id" id="conversation_id" value="">
                         <div class="input-group">

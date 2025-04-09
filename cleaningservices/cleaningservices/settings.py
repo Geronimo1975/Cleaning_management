@@ -84,9 +84,9 @@ WSGI_APPLICATION = 'cleaningservices.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('PGDATABASE', 'neondb'),
+        'NAME': os.environ.get('PGDATABASE', 'clean_database'),
         'USER': os.environ.get('PGUSER', 'postgres'),
-        'PASSWORD': os.environ.get('PGPASSWORD', 'postgres'),
+        'PASSWORD': os.environ.get('PGPASSWORD', 'Secret1975'),
         'HOST': os.environ.get('PGHOST', 'localhost'),
         'PORT': os.environ.get('PGPORT', '5432'),
     }

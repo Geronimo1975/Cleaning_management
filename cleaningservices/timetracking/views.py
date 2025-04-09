@@ -30,6 +30,30 @@ def get_company_profile(user):
     return None
 
 
+@login_required
+def time_clock_view(request):
+    """Simple view for time clock functionality."""
+    cleaner_profile = get_cleaner_profile(request.user)
+    
+    # Get current active entry if any
+    active_entry = None
+    if cleaner_profile:
+        try:
+            active_entry = TimeEntry.objects.get(cleaner=cleaner_profile, is_active=True)
+        except (TimeEntry.DoesNotExist, TimeEntry.MultipleObjectsReturned):
+            # Handle case of no active entry or multiple active entries (should not happen)
+            pass
+    
+    context = {
+        'title': 'Time Clock',
+        'section': 'timetracking',
+        'active_entry': active_entry,
+        'is_cleaner': cleaner_profile is not None,
+    }
+    
+    return render(request, 'timetracking/time_clock.html', context)
+
+
 # Time entry management views
 @login_required
 def time_entry_list_view(request):
@@ -330,7 +354,7 @@ def clock_in_view(request):
     active_entry = TimeEntry.objects.filter(cleaner=cleaner_profile, is_active=True).first()
     if active_entry:
         messages.warning(request, 'You are already clocked in.')
-        return redirect('timetracking:list')
+        return redirect('timetracking:time_clock')
     
     # Process the clock in
     if request.method == 'POST':
@@ -352,7 +376,7 @@ def clock_in_view(request):
         entry.save()
         
         messages.success(request, 'Successfully clocked in.')
-        return redirect('timetracking:list')
+        return redirect('timetracking:time_clock')
     
     context = {
         'title': 'Clock In',
@@ -369,14 +393,14 @@ def clock_out_view(request):
     
     if not cleaner_profile:
         messages.error(request, 'Only cleaners can clock out.')
-        return redirect('timetracking:list')
+        return redirect('timetracking:time_clock')
     
     # Get active time entry
     try:
         active_entry = TimeEntry.objects.get(cleaner=cleaner_profile, is_active=True)
     except TimeEntry.DoesNotExist:
         messages.warning(request, 'You are not currently clocked in.')
-        return redirect('timetracking:list')
+        return redirect('timetracking:time_clock')
     except TimeEntry.MultipleObjectsReturned:
         # Handle rare case of multiple active entries
         active_entries = TimeEntry.objects.filter(cleaner=cleaner_profile, is_active=True)
@@ -400,7 +424,7 @@ def clock_out_view(request):
         )
         
         messages.success(request, 'Successfully clocked out.')
-        return redirect('timetracking:list')
+        return redirect('timetracking:time_clock')
     
     context = {
         'title': 'Clock Out',
@@ -418,25 +442,25 @@ def break_start_view(request):
     
     if not cleaner_profile:
         messages.error(request, 'Only cleaners can start breaks.')
-        return redirect('timetracking:list')
+        return redirect('timetracking:time_clock')
     
     # Get active time entry
     try:
         active_entry = TimeEntry.objects.get(cleaner=cleaner_profile, is_active=True)
     except TimeEntry.DoesNotExist:
         messages.warning(request, 'You are not currently clocked in.')
-        return redirect('timetracking:list')
+        return redirect('timetracking:time_clock')
     
     # Check if already on break
     if active_entry.is_on_break():
         messages.warning(request, 'You are already on a break.')
-        return redirect('timetracking:list')
+        return redirect('timetracking:time_clock')
     
     # Start the break
     active_entry.start_break()
     
     messages.success(request, 'Break started.')
-    return redirect('timetracking:list')
+    return redirect('timetracking:time_clock')
 
 
 @login_required
@@ -446,25 +470,25 @@ def break_end_view(request):
     
     if not cleaner_profile:
         messages.error(request, 'Only cleaners can end breaks.')
-        return redirect('timetracking:list')
+        return redirect('timetracking:time_clock')
     
     # Get active time entry
     try:
         active_entry = TimeEntry.objects.get(cleaner=cleaner_profile, is_active=True)
     except TimeEntry.DoesNotExist:
         messages.warning(request, 'You are not currently clocked in.')
-        return redirect('timetracking:list')
+        return redirect('timetracking:time_clock')
     
     # Check if on break
     if not active_entry.is_on_break():
         messages.warning(request, 'You are not currently on a break.')
-        return redirect('timetracking:list')
+        return redirect('timetracking:time_clock')
     
     # End the break
     active_entry.end_break()
     
     messages.success(request, 'Break ended.')
-    return redirect('timetracking:list')
+    return redirect('timetracking:time_clock')
 
 
 # Timesheet management

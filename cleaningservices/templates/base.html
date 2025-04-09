@@ -48,6 +48,10 @@
                             <a class="nav-link" href="{% url 'job_list' %}">Jobs</a>
                         </li>
                         
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'timetracking:time_clock' %}">Time Clock</a>
+                        </li>
+                        
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                                 Documents
@@ -189,6 +193,7 @@
                         {% if user.is_authenticated %}
                             <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
                             <li><a href="{% url 'job_list' %}">Jobs</a></li>
+                            <li><a href="{% url 'timetracking:time_clock' %}">Time Clock</a></li>
                             <li><a href="{% url 'documents:document_list' %}">Documents</a></li>
                             <li><a href="{% url 'documents:chatbot' %}">Document Chatbot</a></li>
                         {% else %}

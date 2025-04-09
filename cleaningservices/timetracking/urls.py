@@ -5,7 +5,7 @@ app_name = 'timetracking'
 
 urlpatterns = [
     # Time entry management
-    path('', views.time_entry_list_view, name='list'),
+    path('', views.time_clock_view, name='list'),  # Changed to time_clock_view
     path('entries/', views.time_entry_list_view, name='entry_list'),
     path('entries/create/', views.create_time_entry_view, name='create_entry'),
     path('entries/select-cleaner/', views.select_cleaner_view, name='select_cleaner'),
@@ -15,6 +15,7 @@ urlpatterns = [
     path('entries/<int:entry_id>/verify/', views.verify_time_entry_view, name='verify_entry'),
     
     # Time clock operations
+    path('clock/', views.time_clock_view, name='time_clock'),
     path('clock-in/', views.clock_in_view, name='clock_in'),
     path('clock-out/', views.clock_out_view, name='clock_out'),
     path('break-start/', views.break_start_view, name='break_start'),

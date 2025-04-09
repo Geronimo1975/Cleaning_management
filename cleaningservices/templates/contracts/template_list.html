@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Contract Templates{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">Contract Templates</h1>
+            
+            <div class="mb-3">
+                <a href="{% url 'contracts:list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Contracts
+                </a>
+                
+                {% if perms.contracts.add_contracttemplate %}
+                <a href="{% url 'contracts:create_template' %}" class="btn btn-primary ms-2">
+                    <i class="fas fa-plus me-2"></i>Create New Template
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Available Templates</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                This is a placeholder for the contract templates list. The actual contract template functionality will be implemented soon.
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Template Name</th>
+                            <th>Type</th>
+                            <th>Created</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="5" class="text-center">No contract templates available yet.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

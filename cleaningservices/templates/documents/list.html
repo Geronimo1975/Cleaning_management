@@ -4,15 +4,17 @@
 {% block title %}Documents{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">Document Management</h2>
-        {% if perms.documents.add_document %}
-        <a href="{% url 'documents:upload_document' %}" class="btn btn-primary">
-            <i class="fas fa-upload me-2"></i>Upload New Document
-        </a>
-        {% endif %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">Document Management</h1>
+            
+            {% if perms.documents.add_document %}
+            <a href="{% url 'documents:upload_document' %}" class="btn btn-primary">
+                <i class="fas fa-upload me-2"></i>Upload New Document
+            </a>
+            {% endif %}
+        </div>
     </div>
     
     <!-- Search and Filter -->
@@ -29,193 +31,133 @@
                     <label for="category" class="form-label">Category</label>
                     <select class="form-select" id="category" name="category">
                         <option value="">All Categories</option>
-                        <option value="policy" {% if request.GET.category == 'policy' %}selected{% endif %}>Policy</option>
-                        <option value="procedure" {% if request.GET.category == 'procedure' %}selected{% endif %}>Procedure</option>
-                        <option value="training" {% if request.GET.category == 'training' %}selected{% endif %}>Training Material</option>
-                        <option value="contract" {% if request.GET.category == 'contract' %}selected{% endif %}>Contract Template</option>
-                        <option value="legal" {% if request.GET.category == 'legal' %}selected{% endif %}>Legal Document</option>
-                        <option value="cleaning_solution" {% if request.GET.category == 'cleaning_solution' %}selected{% endif %}>Cleaning Solution</option>
-                        <option value="equipment" {% if request.GET.category == 'equipment' %}selected{% endif %}>Equipment Manual</option>
-                        <option value="safety" {% if request.GET.category == 'safety' %}selected{% endif %}>Safety Guidelines</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:"i" %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
                     </select>
                 </div>
                 <div class="col-md-3">
                     <label for="document_type" class="form-label">Document Type</label>
                     <select class="form-select" id="document_type" name="document_type">
                         <option value="">All Types</option>
-                        <option value="general" {% if request.GET.document_type == 'general' %}selected{% endif %}>General</option>
-                        <option value="employee" {% if request.GET.document_type == 'employee' %}selected{% endif %}>Employee</option>
-                        <option value="customer" {% if request.GET.document_type == 'customer' %}selected{% endif %}>Customer</option>
-                        <option value="company" {% if request.GET.document_type == 'company' %}selected{% endif %}>Company</option>
-                        <option value="cleaning_solution" {% if request.GET.document_type == 'cleaning_solution' %}selected{% endif %}>Cleaning Solution</option>
+                        <option value="policy" {% if request.GET.document_type == 'policy' %}selected{% endif %}>Policy</option>
+                        <option value="procedure" {% if request.GET.document_type == 'procedure' %}selected{% endif %}>Procedure</option>
+                        <option value="contract" {% if request.GET.document_type == 'contract' %}selected{% endif %}>Contract</option>
+                        <option value="report" {% if request.GET.document_type == 'report' %}selected{% endif %}>Report</option>
+                        <option value="form" {% if request.GET.document_type == 'form' %}selected{% endif %}>Form</option>
+                        <option value="guide" {% if request.GET.document_type == 'guide' %}selected{% endif %}>Guide</option>
+                        <option value="other" {% if request.GET.document_type == 'other' %}selected{% endif %}>Other</option>
                     </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
-                    <div class="d-grid w-100">
-                        <button type="submit" class="btn btn-primary">Filter</button>
-                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-2"></i>Search
+                    </button>
                 </div>
             </form>
         </div>
     </div>
-
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
     
-    <!-- Document List -->
-    {% if documents %}
-    <div class="card shadow">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th scope="col">Title</th>
-                            <th scope="col">Category</th>
-                            <th scope="col">Type</th>
-                            <th scope="col">Uploaded By</th>
-                            <th scope="col">Date</th>
-                            <th scope="col">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for document in documents %}
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="document-icon me-3">
-                                        <i class="fas fa-file-pdf fa-2x text-danger"></i>
-                                    </div>
-                                    <div>
-                                        <span class="fw-medium">{{ document.title }}</span>
-                                        {% if document.description %}
-                                        <br>
-                                        <small class="text-muted">{{ document.description|truncatechars:60 }}</small>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="badge bg-secondary text-white">
-                                    {{ document.get_category_display }}
-                                </span>
-                            </td>
-                            <td>{{ document.get_document_type_display }}</td>
-                            <td>{{ document.uploaded_by.get_full_name|default:document.uploaded_by.username }}</td>
-                            <td>{{ document.upload_date|date:"M d, Y" }}</td>
-                            <td>
-                                <div class="d-flex gap-2">
-                                    <a href="{{ document.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank" title="View">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{% url 'documents:document_download_view' document.id %}" class="btn btn-sm btn-outline-success" title="Download">
-                                        <i class="fas fa-download"></i>
-                                    </a>
-                                    {% if perms.documents.change_document %}
-                                    <a href="{% url 'documents:edit_document_view' document.id %}" class="btn btn-sm btn-outline-secondary" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    {% endif %}
-                                    {% if perms.documents.delete_document %}
-                                    <a href="{% url 'documents:delete_document_view' document.id %}" class="btn btn-sm btn-outline-danger" title="Delete">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <!-- Document Grid -->
+    <div class="row">
+        {% if documents %}
+            {% for document in documents %}
+                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            {% if document.access_level == 'private' %}
+                                <span class="badge bg-danger">Private</span>
+                            {% elif document.access_level == 'company' %}
+                                <span class="badge bg-warning text-dark">Company</span>
+                            {% else %}
+                                <span class="badge bg-success">Public</span>
+                            {% endif %}
+                            
+                            <small class="text-muted">{{ document.created_at|date:"M d, Y" }}</small>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">{{ document.title }}</h5>
+                            <p class="card-text small text-muted mb-2">
+                                <i class="fas fa-folder me-1"></i> {{ document.category.name }}
+                                <span class="mx-2">|</span>
+                                <i class="fas fa-file-alt me-1"></i> {{ document.get_document_type_display }}
+                            </p>
+                            <p class="card-text mb-3">
+                                {{ document.description|truncatechars:100 }}
+                            </p>
+                            <div class="d-flex gap-1 flex-wrap mb-3">
+                                {% for tag in document.tags %}
+                                    <span class="badge bg-light text-dark">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent d-flex justify-content-between">
+                            <a href="{% url 'documents:document_detail' document.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye me-1"></i> View
+                            </a>
+                            <a href="{% url 'documents:document_download' document.id %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-download me-1"></i> Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <p class="mb-0">No documents found. {% if perms.documents.add_document %}You can <a href="{% url 'documents:upload_document' %}">upload a new document</a>.{% endif %}</p>
+                </div>
             </div>
-            
-            <!-- Pagination -->
-            {% if is_paginated %}
-            <nav aria-label="Page navigation" class="mt-4">
+        {% endif %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if documents.paginator.num_pages > 1 %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <nav aria-label="Document navigation">
                 <ul class="pagination justify-content-center">
-                    {% if page_obj.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
-                            <span aria-hidden="true">&laquo;&laquo;</span>
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Previous">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
+                    {% if documents.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ documents.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link" aria-hidden="true">&laquo;</span>
+                        </li>
                     {% endif %}
                     
-                    {% for num in page_obj.paginator.page_range %}
-                        {% if page_obj.number == num %}
-                            <li class="page-item active"><a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a></li>
-                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                            <li class="page-item"><a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a></li>
+                    {% for i in documents.paginator.page_range %}
+                        {% if documents.number == i %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ i }}</span>
+                            </li>
+                        {% else %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ i }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ i }}</a>
+                            </li>
                         {% endif %}
                     {% endfor %}
                     
-                    {% if page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Next">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Last">
-                            <span aria-hidden="true">&raquo;&raquo;</span>
-                        </a>
-                    </li>
+                    {% if documents.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ documents.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link" aria-hidden="true">&raquo;</span>
+                        </li>
                     {% endif %}
                 </ul>
             </nav>
-            {% endif %}
-        </div>
-    </div>
-    {% else %}
-    <div class="card shadow text-center p-5">
-        <div class="card-body">
-            <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
-            <h4>No Documents Found</h4>
-            <p class="text-muted">
-                {% if request.GET %}
-                No documents match your search criteria. Try different filters or clear your search.
-                {% else %}
-                There are no documents in the system yet.
-                {% if perms.documents.add_document %}
-                Click the "Upload New Document" button to add one.
-                {% endif %}
-                {% endif %}
-            </p>
-            {% if request.GET %}
-            <a href="{% url 'documents:document_list' %}" class="btn btn-outline-primary mt-3">
-                <i class="fas fa-undo me-2"></i>Clear Filters
-            </a>
-            {% endif %}
         </div>
     </div>
     {% endif %}
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    // Add any JavaScript needed for the document list page
-    document.addEventListener('DOMContentLoaded', function() {
-        // Example: Auto-submit form when changing filter
-        /*
-        const filterSelects = document.querySelectorAll('#category, #document_type');
-        filterSelects.forEach(select => {
-            select.addEventListener('change', function() {
-                this.form.submit();
-            });
-        });
-        */
-    });
-</script>
 {% endblock %}

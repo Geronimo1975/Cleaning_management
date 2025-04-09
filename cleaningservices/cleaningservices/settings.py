@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     'payroll',
     'dashboard',
     'shop',
+    'contracts',
+    'timetracking',
     'notifications',
 ]
 

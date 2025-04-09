@@ -18,6 +18,8 @@ urlpatterns = [
     path('dashboard/', include('dashboard.urls')),
     path('shop/', include('shop.urls')),
     path('notifications/', include('notifications.urls')),
+    path('contracts/', include('contracts.urls')),
+    path('timetracking/', include('timetracking.urls')),
 ]
 
 if settings.DEBUG:

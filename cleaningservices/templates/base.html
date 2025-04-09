@@ -62,6 +62,37 @@
                             </ul>
                         </li>
                         
+                        {% if user.role == 'COMPANY' or user.role == 'CLEANER' %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    Contracts
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{% url 'contracts:contract_list' %}">My Contracts</a></li>
+                                    {% if user.role == 'COMPANY' %}
+                                        <li><a class="dropdown-item" href="{% url 'contracts:contract_create' %}">Create Contract</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'contracts:template_list' %}">Contract Templates</a></li>
+                                    {% endif %}
+                                </ul>
+                            </li>
+                            
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    Time Tracking
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{% url 'timetracking:time_entry_list' %}">Time Entries</a></li>
+                                    {% if user.role == 'CLEANER' %}
+                                        <li><a class="dropdown-item" href="{% url 'timetracking:clock_in' %}">Clock In/Out</a></li>
+                                    {% endif %}
+                                    <li><a class="dropdown-item" href="{% url 'timetracking:timesheet_list' %}">Timesheets</a></li>
+                                    {% if user.role == 'COMPANY' %}
+                                        <li><a class="dropdown-item" href="{% url 'timetracking:schedule_list' %}">Work Schedules</a></li>
+                                    {% endif %}
+                                </ul>
+                            </li>
+                        {% endif %}
+                        
                         {% if user.role == 'COMPANY' %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'payroll_overview' %}">Payroll</a>
@@ -69,9 +100,6 @@
                         {% elif user.role == 'CLEANER' %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'cleaner_payslips' %}">My Payslips</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'time_tracking_history' %}">Time Tracking</a>
                             </li>
                         {% endif %}
                     {% endif %}

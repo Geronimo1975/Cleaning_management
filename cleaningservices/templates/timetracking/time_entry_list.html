@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Time Tracking{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">Time Tracking</h1>
+            
+            <div class="btn-group mb-3">
+                <a href="{% url 'timetracking:clock_in' %}" class="btn btn-success">
+                    <i class="fas fa-play me-2"></i>Clock In
+                </a>
+                <a href="{% url 'timetracking:clock_out' %}" class="btn btn-danger">
+                    <i class="fas fa-stop me-2"></i>Clock Out
+                </a>
+                <a href="{% url 'timetracking:break_start' %}" class="btn btn-warning text-dark">
+                    <i class="fas fa-coffee me-2"></i>Start Break
+                </a>
+                <a href="{% url 'timetracking:break_end' %}" class="btn btn-info">
+                    <i class="fas fa-check me-2"></i>End Break
+                </a>
+            </div>
+            
+            <div class="btn-group ms-md-2 mb-3">
+                <a href="{% url 'timetracking:create_entry' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-plus me-2"></i>Add Time Entry
+                </a>
+                <a href="{% url 'timetracking:timesheet_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-file-alt me-2"></i>Timesheets
+                </a>
+                <a href="{% url 'timetracking:schedule_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-calendar-alt me-2"></i>Schedules
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Current Status Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0">Current Status</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                This is a placeholder for the time tracking status view. The actual time tracking functionality will be implemented soon.
+            </div>
+            
+            <div class="row text-center">
+                <div class="col-md-3 mb-3">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <h6 class="text-muted">Current Status</h6>
+                            <h4 class="mt-2"><span class="badge bg-secondary">Not Clocked In</span></h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <h6 class="text-muted">Today's Hours</h6>
+                            <h4 class="mt-2">0:00</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <h6 class="text-muted">This Week</h6>
+                            <h4 class="mt-2">0:00</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <h6 class="text-muted">This Month</h6>
+                            <h4 class="mt-2">0:00</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Time Entries -->
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Recent Time Entries</h5>
+            <div>
+                <a href="#" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-calendar me-1"></i> Filter
+                </a>
+                <a href="#" class="btn btn-sm btn-outline-secondary ms-1">
+                    <i class="fas fa-download me-1"></i> Export
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                            <th>Duration</th>
+                            <th>Project</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="7" class="text-center">No time entries available yet.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

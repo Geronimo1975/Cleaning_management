@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Contracts{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">Contract Management</h1>
+            
+            {% if perms.contracts.add_contract %}
+            <a href="{% url 'contracts:create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Create New Contract
+            </a>
+            
+            <a href="{% url 'contracts:template_list' %}" class="btn btn-outline-primary ms-2">
+                <i class="fas fa-file-contract me-2"></i>Contract Templates
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Your Contracts</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                This is a placeholder for the contracts list view. The actual contracts functionality will be implemented soon.
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Contract Name</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Expires</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="6" class="text-center">No contracts available yet.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

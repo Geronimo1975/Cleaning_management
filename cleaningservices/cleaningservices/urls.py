@@ -17,6 +17,7 @@ urlpatterns = [
     path('payroll/', include('payroll.urls')),
     path('dashboard/', include('dashboard.urls')),
     path('shop/', include('shop.urls')),
+    path('notifications/', include('notifications.urls')),
 ]
 
 if settings.DEBUG:

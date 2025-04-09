@@ -79,6 +79,11 @@
                 
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
+                        <!-- Notification Dropdown -->
+                        {% with unread_count=request.user.notifications.filter.count recent_notifications=request.user.notifications.all|slice:":5" %}
+                            {% include 'notifications/dropdown.html' with unread_count=unread_count recent_notifications=recent_notifications %}
+                        {% endwith %}
+                        
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                                 {% if user.profile_picture %}
@@ -175,6 +180,12 @@
     
     <!-- Custom JavaScript -->
     <script src="/static/js/main.js"></script>
+    <script src="/static/js/notifications.js"></script>
+    
+    <!-- Notification sound for new alerts -->
+    <audio id="notification-sound" preload="auto">
+        <source src="/static/media/notification.mp3" type="audio/mpeg">
+    </audio>
     
     <!-- Floating Chatbot Widget -->
     {% if user.is_authenticated %}

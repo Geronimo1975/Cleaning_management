@@ -1,0 +1,138 @@
+<!-- Notification Dropdown -->
+<li class="nav-item dropdown" id="notification-dropdown">
+    <a class="nav-link dropdown-toggle position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-bell"></i>
+        <span id="notification-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger {% if unread_count == 0 %}d-none{% endif %}">
+            {{ unread_count }}
+        </span>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end notification-dropdown-menu" aria-labelledby="notificationDropdown">
+        <li>
+            <div class="dropdown-header d-flex justify-content-between align-items-center">
+                <span>Notifications</span>
+                {% if unread_count > 0 %}
+                    <form method="post" action="{% url 'notification_mark_all_read' %}" class="mark-all-read-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-link btn-sm p-0 text-decoration-none">Mark all as read</button>
+                    </form>
+                {% endif %}
+            </div>
+        </li>
+        <div class="notification-dropdown-items">
+            {% if recent_notifications %}
+                {% for notification in recent_notifications %}
+                    <li>
+                        <a class="dropdown-item notification-item {% if not notification.read %}unread{% endif %}" href="{% url 'notification_mark_read' notification.id %}">
+                            <div class="d-flex align-items-center">
+                                <div class="notification-icon me-3">
+                                    {% if notification.notification_type == 'JOB' %}
+                                        <span class="icon-wrapper bg-primary text-white">
+                                            <i class="fas fa-briefcase fa-sm"></i>
+                                        </span>
+                                    {% elif notification.notification_type == 'DOCUMENT' %}
+                                        <span class="icon-wrapper bg-info text-white">
+                                            <i class="fas fa-file-alt fa-sm"></i>
+                                        </span>
+                                    {% elif notification.notification_type == 'PAYMENT' %}
+                                        <span class="icon-wrapper bg-success text-white">
+                                            <i class="fas fa-euro-sign fa-sm"></i>
+                                        </span>
+                                    {% elif notification.notification_type == 'MESSAGE' %}
+                                        <span class="icon-wrapper bg-warning text-white">
+                                            <i class="fas fa-envelope fa-sm"></i>
+                                        </span>
+                                    {% else %}
+                                        <span class="icon-wrapper bg-secondary text-white">
+                                            <i class="fas fa-bell fa-sm"></i>
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <div class="notification-content">
+                                    <div class="notification-title">{{ notification.title }}</div>
+                                    <div class="notification-text">{{ notification.message|truncatechars:50 }}</div>
+                                    <div class="notification-time">{{ notification.created_at|timesince }} ago</div>
+                                </div>
+                            </div>
+                        </a>
+                    </li>
+                {% endfor %}
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <a class="dropdown-item text-center view-all" href="{% url 'notification_list' %}">
+                        View all notifications
+                    </a>
+                </li>
+            {% else %}
+                <li>
+                    <div class="dropdown-item text-center py-3">
+                        <i class="fas fa-bell-slash fa-lg text-muted"></i>
+                        <p class="mb-0 mt-2">No notifications</p>
+                    </div>
+                </li>
+            {% endif %}
+        </div>
+    </ul>
+</li>
+
+<style>
+    .notification-dropdown-menu {
+        width: 320px;
+        padding: 0;
+    }
+    
+    .dropdown-header {
+        background-color: #f8f9fa;
+        padding: 12px 15px;
+        font-weight: 600;
+    }
+    
+    .notification-dropdown-items {
+        max-height: 350px;
+        overflow-y: auto;
+    }
+    
+    .dropdown-item.notification-item {
+        padding: 10px 15px;
+        border-left: 3px solid transparent;
+    }
+    
+    .dropdown-item.notification-item.unread {
+        border-left-color: #0052CC;
+        background-color: #f0f7ff;
+    }
+    
+    .dropdown-item.notification-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .notification-icon .icon-wrapper {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .notification-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .notification-text {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 3px;
+    }
+    
+    .notification-time {
+        font-size: 11px;
+        color: #888;
+    }
+    
+    .view-all {
+        background-color: #f8f9fa;
+        font-weight: 500;
+    }
+</style>

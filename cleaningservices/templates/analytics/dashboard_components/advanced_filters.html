@@ -1,0 +1,225 @@
+{% load static %}
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center bg-light">
+        <h5 class="card-title mb-0">Advanced Filters</h5>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" 
+                data-bs-target="#advancedFiltersCollapse" aria-expanded="false">
+            <i class="fas fa-sliders-h me-1"></i> Toggle Filters
+        </button>
+    </div>
+    <div class="collapse" id="advancedFiltersCollapse">
+        <div class="card-body">
+            <form id="advanced-filters-form" method="get" class="row g-3">
+                <!-- Time Range Section -->
+                <div class="col-md-4">
+                    <h6 class="text-muted mb-3">Time Range</h6>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="time_range" id="timeRangeCustom" value="custom" 
+                                   {% if time_range == 'custom' or not time_range %}checked{% endif %}>
+                            <label class="form-check-label" for="timeRangeCustom">
+                                Custom Date Range
+                            </label>
+                        </div>
+                        <div class="row mt-2 mb-3" id="customDateFields">
+                            <div class="col-md-6">
+                                <label for="start-date" class="form-label small">Start Date</label>
+                                <input type="date" class="form-control form-control-sm" id="start-date" name="start_date" 
+                                       value="{{ start_date }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="end-date" class="form-label small">End Date</label>
+                                <input type="date" class="form-control form-control-sm" id="end-date" name="end_date" 
+                                       value="{{ end_date }}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="time_range" id="timeRangePreset" value="preset"
+                                   {% if time_range == 'preset' %}checked{% endif %}>
+                            <label class="form-check-label" for="timeRangePreset">
+                                Preset Range
+                            </label>
+                        </div>
+                        
+                        <div class="mt-2" id="presetRangeFields" {% if time_range != 'preset' %}style="display: none;"{% endif %}>
+                            <select class="form-select form-select-sm" name="preset_range" id="preset-range">
+                                <option value="today" {% if preset_range == 'today' %}selected{% endif %}>Today</option>
+                                <option value="yesterday" {% if preset_range == 'yesterday' %}selected{% endif %}>Yesterday</option>
+                                <option value="this_week" {% if preset_range == 'this_week' %}selected{% endif %}>This Week</option>
+                                <option value="last_week" {% if preset_range == 'last_week' %}selected{% endif %}>Last Week</option>
+                                <option value="this_month" {% if preset_range == 'this_month' %}selected{% endif %}>This Month</option>
+                                <option value="last_month" {% if preset_range == 'last_month' %}selected{% endif %}>Last Month</option>
+                                <option value="this_quarter" {% if preset_range == 'this_quarter' %}selected{% endif %}>This Quarter</option>
+                                <option value="last_quarter" {% if preset_range == 'last_quarter' %}selected{% endif %}>Last Quarter</option>
+                                <option value="this_year" {% if preset_range == 'this_year' %}selected{% endif %}>This Year</option>
+                                <option value="last_year" {% if preset_range == 'last_year' %}selected{% endif %}>Last Year</option>
+                                <option value="last_30_days" {% if preset_range == 'last_30_days' %}selected{% endif %}>Last 30 Days</option>
+                                <option value="last_90_days" {% if preset_range == 'last_90_days' %}selected{% endif %}>Last 90 Days</option>
+                                <option value="last_12_months" {% if preset_range == 'last_12_months' %}selected{% endif %}>Last 12 Months</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Entity Filters Section -->
+                <div class="col-md-4">
+                    <h6 class="text-muted mb-3">Entity Filters</h6>
+                    
+                    <div class="mb-3">
+                        <label for="company-filter" class="form-label small">Company</label>
+                        <select class="form-select form-select-sm" id="company-filter" name="company">
+                            <option value="">All Companies</option>
+                            {% for company in companies %}
+                            <option value="{{ company.id }}" {% if filter_company == company.id|stringformat:"s" %}selected{% endif %}>
+                                {{ company.company_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="cleaner-filter" class="form-label small">Cleaner</label>
+                        <select class="form-select form-select-sm" id="cleaner-filter" name="cleaner">
+                            <option value="">All Cleaners</option>
+                            {% for cleaner in cleaners %}
+                            <option value="{{ cleaner.id }}" {% if filter_cleaner == cleaner.id|stringformat:"s" %}selected{% endif %}>
+                                {{ cleaner.user.get_full_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="customer-filter" class="form-label small">Customer</label>
+                        <select class="form-select form-select-sm" id="customer-filter" name="customer">
+                            <option value="">All Customers</option>
+                            {% for customer in customers %}
+                            <option value="{{ customer.id }}" {% if filter_customer == customer.id|stringformat:"s" %}selected{% endif %}>
+                                {{ customer.user.get_full_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Additional Filters Section -->
+                <div class="col-md-4">
+                    <h6 class="text-muted mb-3">Additional Filters</h6>
+                    
+                    <!-- Job Status Filter -->
+                    <div class="mb-3">
+                        <label for="status-filter" class="form-label small">Job Status</label>
+                        <select class="form-select form-select-sm" id="status-filter" name="status">
+                            <option value="">All Statuses</option>
+                            <option value="pending" {% if filter_status == 'pending' %}selected{% endif %}>Pending</option>
+                            <option value="in_progress" {% if filter_status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                            <option value="completed" {% if filter_status == 'completed' %}selected{% endif %}>Completed</option>
+                            <option value="cancelled" {% if filter_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Job Type Filter -->
+                    <div class="mb-3">
+                        <label for="type-filter" class="form-label small">Job Type</label>
+                        <select class="form-select form-select-sm" id="type-filter" name="job_type">
+                            <option value="">All Types</option>
+                            <option value="regular" {% if filter_job_type == 'regular' %}selected{% endif %}>Regular Cleaning</option>
+                            <option value="deep" {% if filter_job_type == 'deep' %}selected{% endif %}>Deep Cleaning</option>
+                            <option value="window" {% if filter_job_type == 'window' %}selected{% endif %}>Window Cleaning</option>
+                            <option value="move_in_out" {% if filter_job_type == 'move_in_out' %}selected{% endif %}>Move-in/Move-out</option>
+                            <option value="special" {% if filter_job_type == 'special' %}selected{% endif %}>Special Service</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Location Filter -->
+                    <div class="mb-3">
+                        <label for="location-filter" class="form-label small">Location</label>
+                        <select class="form-select form-select-sm" id="location-filter" name="location">
+                            <option value="">All Locations</option>
+                            {% for location in locations %}
+                            <option value="{{ location }}" {% if filter_location == location %}selected{% endif %}>
+                                {{ location }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="col-12 mt-3 d-flex justify-content-between">
+                    <button type="reset" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-undo me-1"></i> Reset Filters
+                    </button>
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="fas fa-filter me-1"></i> Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle for preset range fields
+    const timeRangePreset = document.getElementById('timeRangePreset');
+    const timeRangeCustom = document.getElementById('timeRangeCustom');
+    const presetRangeFields = document.getElementById('presetRangeFields');
+    const customDateFields = document.getElementById('customDateFields');
+    
+    if (timeRangePreset && timeRangeCustom && presetRangeFields && customDateFields) {
+        timeRangePreset.addEventListener('change', function() {
+            if (this.checked) {
+                presetRangeFields.style.display = 'block';
+                customDateFields.style.display = 'none';
+            }
+        });
+        
+        timeRangeCustom.addEventListener('change', function() {
+            if (this.checked) {
+                presetRangeFields.style.display = 'none';
+                customDateFields.style.display = 'flex';
+            }
+        });
+    }
+    
+    // Form reset handler to properly reset all controls including toggles
+    const resetButton = document.querySelector('button[type="reset"]');
+    if (resetButton) {
+        resetButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Reset all form fields to default values
+            document.getElementById('advanced-filters-form').reset();
+            
+            // Set default view (custom date range)
+            if (timeRangeCustom) {
+                timeRangeCustom.checked = true;
+                if (presetRangeFields) presetRangeFields.style.display = 'none';
+                if (customDateFields) customDateFields.style.display = 'flex';
+            }
+            
+            // Reset date fields to default values (past 30 days)
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today);
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+            
+            document.getElementById('start-date').value = formatDate(thirtyDaysAgo);
+            document.getElementById('end-date').value = formatDate(today);
+        });
+    }
+    
+    // Helper function to format date as YYYY-MM-DD
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+});
+</script>

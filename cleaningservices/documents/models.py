@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from accounts.models import User, CompanyProfile
+from django.utils import timezone
 
 
 class DocumentCategory(models.Model):
@@ -81,3 +82,63 @@ class DocumentComment(models.Model):
     
     def __str__(self):
         return f"Comment by {self.user.email} on {self.document.title}"
+
+
+class ChatConversation(models.Model):
+    """Tracks chatbot conversations with users."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_conversations')
+    title = models.CharField(max_length=255, default="New Conversation")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    
+    # Optional reference to related document if conversation is specific to a document
+    document = models.ForeignKey(Document, on_delete=models.SET_NULL, 
+                                related_name='conversations', null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-updated_at']
+    
+    def __str__(self):
+        return f"Conversation with {self.user.email} on {self.created_at.strftime('%Y-%m-%d')}"
+    
+    @property
+    def message_count(self):
+        return self.messages.count()
+    
+    @property
+    def last_message(self):
+        return self.messages.order_by('-timestamp').first()
+    
+    def mark_inactive(self):
+        self.is_active = False
+        self.save()
+        
+    def update_title_from_first_message(self):
+        """Set conversation title based on first user message if available."""
+        first_message = self.messages.filter(is_bot=False).order_by('timestamp').first()
+        if first_message:
+            # Truncate long messages
+            title = first_message.message[:50]
+            if len(first_message.message) > 50:
+                title += "..."
+            self.title = title
+            self.save()
+
+
+class ChatMessage(models.Model):
+    """Individual messages in a chatbot conversation."""
+    conversation = models.ForeignKey(ChatConversation, on_delete=models.CASCADE, related_name='messages')
+    message = models.TextField()
+    timestamp = models.DateTimeField(default=timezone.now)
+    is_bot = models.BooleanField(default=False)
+    
+    # Optional reference to documents that were referenced in this message
+    referenced_documents = models.ManyToManyField(Document, related_name='referenced_in_messages', blank=True)
+    
+    class Meta:
+        ordering = ['timestamp']
+    
+    def __str__(self):
+        sender = "Bot" if self.is_bot else self.conversation.user.email
+        return f"Message from {sender} at {self.timestamp.strftime('%Y-%m-%d %H:%M')}"

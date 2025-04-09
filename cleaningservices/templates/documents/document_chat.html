@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+
+{% block title %}Chat about {{ document.title }} - Document Chatbot{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-container {
+        height: 50vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 0.25rem;
+    }
+    .message {
+        max-width: 80%;
+        margin-bottom: 1rem;
+        padding: 0.75rem 1rem;
+        border-radius: 1rem;
+    }
+    .message.user {
+        align-self: flex-end;
+        background-color: #dcf8c6;
+        border-bottom-right-radius: 0.25rem;
+    }
+    .message.bot {
+        align-self: flex-start;
+        background-color: #ffffff;
+        border-bottom-left-radius: 0.25rem;
+        border: 1px solid #e9ecef;
+    }
+    .message .meta {
+        display: block;
+        font-size: 0.75rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+    .form-container {
+        position: sticky;
+        bottom: 0;
+        background-color: white;
+        padding: 1rem 0;
+        border-top: 1px solid #dee2e6;
+    }
+    .document-info {
+        background-color: #e9f7fe;
+        border-left: 4px solid #3498db;
+    }
+    .loading {
+        text-align: center;
+        padding: 1rem;
+        display: none;
+    }
+    .loading-dots:after {
+        content: '';
+        animation: dots 1.5s steps(5, end) infinite;
+    }
+    @keyframes dots {
+        0%, 20% { content: '.'; }
+        40% { content: '..'; }
+        60% { content: '...'; }
+        80%, 100% { content: ''; }
+    }
+    .document-preview {
+        max-height: 300px;
+        overflow-y: auto;
+        background-color: #f5f5f5;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <!-- Document information -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Document Information</h5>
+                    <a href="{% url 'chatbot' %}" class="btn btn-sm btn-outline-light"><i class="fas fa-home"></i></a>
+                </div>
+                <div class="card-body">
+                    <h4>{{ document.title }}</h4>
+                    <div class="mb-3">
+                        <span class="badge bg-info">{{ document.get_document_type_display }}</span>
+                        <span class="badge bg-secondary">{{ document.category.name }}</span>
+                    </div>
+                    
+                    <p>{{ document.description }}</p>
+                    
+                    {% if document.tags %}
+                    <div class="mb-3">
+                        <strong>Tags:</strong>
+                        {% for tag in document.tags %}
+                        <span class="badge bg-light text-dark">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <strong>Created by:</strong> {{ document.created_by.get_full_name|default:document.created_by.email }}<br>
+                        <strong>Created on:</strong> {{ document.created_at|date:"F j, Y" }}
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'document_detail' document.id %}" class="btn btn-primary">
+                            <i class="fas fa-file-alt me-2"></i> View Full Document
+                        </a>
+                        <a href="{% url 'document_download' document.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-download me-2"></i> Download
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Chat Instructions</h5>
+                </div>
+                <div class="card-body">
+                    <p>Ask questions about this document and our AI assistant will provide answers based on its content.</p>
+                    <p>Some example questions you might ask:</p>
+                    <ul>
+                        <li>Can you summarize this document?</li>
+                        <li>What are the key points in this document?</li>
+                        <li>How does this relate to [specific cleaning task]?</li>
+                        <li>Are there any safety precautions mentioned?</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat area -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Chat about: {{ document.title }}</h4>
+                </div>
+                <div class="card-body p-0">
+                    <!-- Chat messages container -->
+                    <div class="chat-container" id="chat-container">
+                        {% if not messages %}
+                            <div class="message bot">
+                                <p>Hello! I'm your AI assistant for document support. How can I help you with "<strong>{{ document.title }}</strong>"?</p>
+                                <span class="meta">Bot • Welcome</span>
+                            </div>
+                        {% else %}
+                            {% for message in messages %}
+                                <div class="message {% if message.is_bot %}bot{% else %}user{% endif %}">
+                                    {{ message.message|linebreaks }}
+                                    <span class="meta">
+                                        {% if message.is_bot %}Bot{% else %}You{% endif %} • {{ message.timestamp|date:"M d, Y" }} at {{ message.timestamp|time:"g:i A" }}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        <div class="loading" id="loading">
+                            <div class="message bot">
+                                <p>Thinking<span class="loading-dots"></span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Message input form -->
+                    <div class="form-container">
+                        <form id="chat-form" class="px-3">
+                            <div class="input-group">
+                                <input type="text" id="message-input" class="form-control" placeholder="Ask a question about this document..." required>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatContainer = document.getElementById('chat-container');
+        const chatForm = document.getElementById('chat-form');
+        const messageInput = document.getElementById('message-input');
+        const loading = document.getElementById('loading');
+        
+        // Scroll to bottom of chat
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        // Initially scroll to bottom
+        scrollToBottom();
+        
+        // Handle form submission
+        chatForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const message = messageInput.value.trim();
+            if (!message) return;
+            
+            // Add user message to chat
+            addMessage(message, false);
+            
+            // Clear input
+            messageInput.value = '';
+            
+            // Show loading indicator
+            loading.style.display = 'block';
+            scrollToBottom();
+            
+            // Send message to server
+            fetch('{% url "send_message" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    message: message,
+                    conversation_id: {{ conversation.id }},
+                    document_id: {{ document.id }}
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading indicator
+                loading.style.display = 'none';
+                
+                if (data.error) {
+                    console.error(data.error);
+                    addErrorMessage();
+                } else {
+                    // Add bot message to chat
+                    addMessage(data.bot_message.message, true);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                loading.style.display = 'none';
+                addErrorMessage();
+            });
+        });
+        
+        // Function to add a message to the chat
+        function addMessage(text, isBot) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.classList.add(isBot ? 'bot' : 'user');
+            
+            // Replace newlines with <br>
+            const formattedText = text.replace(/\n/g, '<br>');
+            
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'});
+            const dateString = now.toLocaleDateString([], {month: 'short', day: 'numeric', year: 'numeric'});
+            
+            messageDiv.innerHTML = `
+                ${formattedText}
+                <span class="meta">
+                    ${isBot ? 'Bot' : 'You'} • ${dateString} at ${timeString}
+                </span>
+            `;
+            
+            // Remove loading indicator if it exists
+            if (loading.parentNode === chatContainer) {
+                chatContainer.insertBefore(messageDiv, loading);
+            } else {
+                chatContainer.appendChild(messageDiv);
+            }
+            
+            scrollToBottom();
+        }
+        
+        // Function to add an error message
+        function addErrorMessage() {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', 'bot');
+            messageDiv.innerHTML = `
+                <p>Sorry, I encountered an error while processing your request. Please try again later.</p>
+                <span class="meta">Bot • Error</span>
+            `;
+            chatContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
+        // Function to get CSRF token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+</script>
+{% endblock %}

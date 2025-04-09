@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Document Chatbot - Cleaning Services{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Conversations</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <a href="{% url 'new_conversation' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-plus-circle me-2"></i> New Conversation</span>
+                        </a>
+                        {% for conversation in conversations %}
+                        <a href="{% url 'chatbot_conversation' conversation.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <span class="text-truncate" style="max-width: 80%;">{{ conversation.title }}</span>
+                            <span class="badge bg-secondary rounded-pill">{{ conversation.message_count }}</span>
+                        </a>
+                        {% empty %}
+                        <div class="list-group-item text-muted">No active conversations</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Documents</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for document in documents %}
+                        <a href="{% url 'chatbot_document' document.id %}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1 text-truncate">{{ document.title }}</h6>
+                            </div>
+                            <small class="text-muted">{{ document.get_document_type_display }} • {{ document.created_at|date:"M d, Y" }}</small>
+                        </a>
+                        {% empty %}
+                        <div class="list-group-item text-muted">No documents found</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Document Support Chatbot</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-robot me-2"></i> Welcome to the Document Support Chatbot!</h5>
+                        <p class="mb-0">You can ask questions about cleaning procedures, safety protocols, equipment usage, and more. The chatbot will search through our document database to provide the most relevant information to help you.</p>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Sample Questions</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="sample-questions">
+                                <li><a href="#" class="sample-question">"What chemicals should I avoid mixing during cleaning?"</a></li>
+                                <li><a href="#" class="sample-question">"How do I clean marble countertops without damaging them?"</a></li>
+                                <li><a href="#" class="sample-question">"What's the procedure for safely handling bleach?"</a></li>
+                                <li><a href="#" class="sample-question">"How often should air filters be changed?"</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="text-center mb-4">
+                        <a href="{% url 'new_conversation' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-comments me-2"></i> Start a New Conversation
+                        </a>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Recent Documents</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for document in documents|slice:":6" %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h6 class="card-title">{{ document.title }}</h6>
+                                            <p class="card-text small text-muted">{{ document.description|truncatechars:80 }}</p>
+                                        </div>
+                                        <div class="card-footer bg-white">
+                                            <div class="d-flex justify-content-between">
+                                                <a href="{% url 'document_detail' document.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                                                <a href="{% url 'chatbot_document' document.id %}" class="btn btn-sm btn-outline-success">
+                                                    <i class="fas fa-comments me-1"></i> Chat
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add click handlers for sample questions
+        document.querySelectorAll('.sample-question').forEach(function(element) {
+            element.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Redirect to new conversation with the sample question
+                fetch("{% url 'new_conversation' %}")
+                    .then(response => response.text())
+                    .then(html => {
+                        window.location.href = "{% url 'new_conversation' %}";
+                    });
+            });
+        });
+    });
+</script>
+{% endblock %}

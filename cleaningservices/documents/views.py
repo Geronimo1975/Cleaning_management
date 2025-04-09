@@ -3,12 +3,21 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.db.models import Q
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 import mimetypes
+import json
+from datetime import datetime
 
 from accounts.models import User, CompanyProfile
-from .models import Document, DocumentCategory, DocumentAccess, DocumentComment
-from .forms import DocumentForm, DocumentCategoryForm, DocumentCommentForm, DocumentSearchForm
+from .models import (
+    Document, DocumentCategory, DocumentAccess, DocumentComment,
+    ChatConversation, ChatMessage
+)
+from .forms import (
+    DocumentForm, DocumentCategoryForm, DocumentCommentForm, DocumentSearchForm,
+    ChatMessageForm
+)
+from .chatbot import get_chatbot_response, search_documents_for_query
 
 
 def is_company_or_admin(user):
@@ -297,3 +306,290 @@ def manage_categories_view(request):
         'categories': categories,
         'form': form,
     })
+
+
+@login_required
+def chatbot_view(request):
+    """View for the main chatbot interface."""
+    # Get user's active conversations
+    active_conversations = ChatConversation.objects.filter(
+        user=request.user, 
+        is_active=True
+    ).order_by('-updated_at')[:10]  # Get most recent 10
+    
+    # Also get all accessible documents for the user
+    user = request.user
+    if user.is_staff:
+        documents = Document.objects.all().order_by('-created_at')[:20]
+    elif user.role == User.Role.COMPANY:
+        company = CompanyProfile.objects.get(user=user)
+        documents = Document.objects.filter(
+            Q(access_level='public') | 
+            Q(company=company) |
+            Q(created_by=user)
+        ).distinct().order_by('-created_at')[:20]
+    else:
+        documents = Document.objects.filter(
+            Q(access_level='public') |
+            Q(created_by=user)
+        ).distinct().order_by('-created_at')[:20]
+    
+    chat_form = ChatMessageForm()
+    
+    return render(request, 'documents/chatbot.html', {
+        'conversations': active_conversations,
+        'documents': documents,
+        'form': chat_form,
+    })
+
+
+@login_required
+def chatbot_conversation_view(request, conversation_id):
+    """View for a specific chatbot conversation."""
+    conversation = get_object_or_404(
+        ChatConversation, 
+        id=conversation_id, 
+        user=request.user
+    )
+    
+    messages = conversation.messages.all()
+    
+    chat_form = ChatMessageForm(initial={
+        'conversation_id': conversation.id
+    })
+    
+    return render(request, 'documents/conversation.html', {
+        'conversation': conversation,
+        'messages': messages,
+        'form': chat_form,
+        'document': conversation.document,
+    })
+
+
+@login_required
+def chatbot_document_view(request, document_id):
+    """View for document-specific chatbot."""
+    document = get_object_or_404(Document, id=document_id)
+    user = request.user
+    
+    # Check document access permissions
+    if document.access_level == 'private' and document.created_by != user:
+        messages.error(request, 'You do not have permission to chat about this document.')
+        return redirect('document_list')
+    elif document.access_level == 'company':
+        if user.role != User.Role.COMPANY and not user.is_staff:
+            messages.error(request, 'You do not have permission to chat about this document.')
+            return redirect('document_list')
+        elif user.role == User.Role.COMPANY:
+            company = CompanyProfile.objects.get(user=user)
+            if document.company != company and document.created_by != user:
+                messages.error(request, 'You do not have permission to chat about this document.')
+                return redirect('document_list')
+    
+    # Record document access
+    DocumentAccess.objects.create(
+        document=document,
+        user=user,
+        ip_address=request.META.get('REMOTE_ADDR')
+    )
+    
+    # Get or create a conversation for this document
+    conversation = ChatConversation.objects.filter(
+        user=user,
+        document=document,
+        is_active=True
+    ).first()
+    
+    if not conversation:
+        conversation = ChatConversation.objects.create(
+            user=user,
+            document=document,
+            title=f"Chat about: {document.title}"
+        )
+    
+    messages = conversation.messages.all()
+    
+    chat_form = ChatMessageForm(initial={
+        'conversation_id': conversation.id,
+        'document_id': document.id
+    })
+    
+    return render(request, 'documents/document_chat.html', {
+        'document': document,
+        'conversation': conversation,
+        'messages': messages,
+        'form': chat_form,
+    })
+
+
+@login_required
+def send_message_view(request):
+    """AJAX view for sending a message to the chatbot and getting a response."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        user_message = data.get('message', '').strip()
+        conversation_id = data.get('conversation_id')
+        document_id = data.get('document_id')
+        
+        if not user_message:
+            return JsonResponse({'error': 'Message cannot be empty'}, status=400)
+        
+        # Get or create a conversation
+        if conversation_id:
+            conversation = get_object_or_404(
+                ChatConversation, 
+                id=conversation_id, 
+                user=request.user
+            )
+        else:
+            conversation = ChatConversation.objects.create(
+                user=request.user,
+                title="New Conversation"
+            )
+            
+            if document_id:
+                document = get_object_or_404(Document, id=document_id)
+                conversation.document = document
+                conversation.title = f"Chat about: {document.title}"
+                conversation.save()
+        
+        # Save the user message
+        user_chat_message = ChatMessage.objects.create(
+            conversation=conversation,
+            message=user_message,
+            is_bot=False
+        )
+        
+        # Update conversation timestamp and title if it's the first message
+        conversation.updated_at = datetime.now()
+        if conversation.messages.count() == 1:
+            conversation.update_title_from_first_message()
+        conversation.save()
+        
+        # Get relevant documents based on user's query and access rights
+        if request.user.is_staff:
+            # Admin has access to all documents
+            documents_queryset = Document.objects.all()
+        elif request.user.role == User.Role.COMPANY:
+            # Companies have access to their documents and public ones
+            company = CompanyProfile.objects.get(user=request.user)
+            documents_queryset = Document.objects.filter(
+                Q(access_level='public') | 
+                Q(company=company) |
+                Q(created_by=request.user)
+            ).distinct()
+        else:
+            # Regular users only have access to public documents
+            documents_queryset = Document.objects.filter(
+                Q(access_level='public') |
+                Q(created_by=request.user)
+            ).distinct()
+        
+        # If the conversation is about a specific document, prioritize it
+        relevant_documents = []
+        if conversation.document:
+            relevant_documents = [conversation.document]
+        else:
+            # Search for relevant documents based on the user's query
+            relevant_documents = search_documents_for_query(user_message, documents_queryset)
+        
+        # Get conversation history for context
+        conversation_history = list(conversation.messages.order_by('timestamp'))
+        
+        # Get bot response with document context
+        bot_response = get_chatbot_response(
+            user_message, 
+            documents=relevant_documents,
+            conversation_history=conversation_history[:-1]  # Exclude the just added message
+        )
+        
+        # Save bot response
+        bot_chat_message = ChatMessage.objects.create(
+            conversation=conversation,
+            message=bot_response,
+            is_bot=True
+        )
+        
+        # Link referenced documents to the bot's message
+        if relevant_documents:
+            bot_chat_message.referenced_documents.set(relevant_documents)
+        
+        # Format response for frontend
+        return JsonResponse({
+            'conversation_id': conversation.id,
+            'user_message': {
+                'id': user_chat_message.id,
+                'message': user_chat_message.message,
+                'timestamp': user_chat_message.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                'is_bot': False
+            },
+            'bot_message': {
+                'id': bot_chat_message.id,
+                'message': bot_chat_message.message,
+                'timestamp': bot_chat_message.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                'is_bot': True
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def get_conversation_messages_view(request, conversation_id):
+    """AJAX view to get messages for a specific conversation."""
+    conversation = get_object_or_404(
+        ChatConversation, 
+        id=conversation_id, 
+        user=request.user
+    )
+    
+    messages = []
+    for msg in conversation.messages.all():
+        messages.append({
+            'id': msg.id,
+            'message': msg.message,
+            'timestamp': msg.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'is_bot': msg.is_bot
+        })
+    
+    return JsonResponse({
+        'conversation': {
+            'id': conversation.id,
+            'title': conversation.title,
+            'created_at': conversation.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'is_active': conversation.is_active,
+            'document_id': conversation.document.id if conversation.document else None
+        },
+        'messages': messages
+    })
+
+
+@login_required
+def new_conversation_view(request):
+    """View to start a new conversation."""
+    conversation = ChatConversation.objects.create(
+        user=request.user,
+        title="New Conversation"
+    )
+    
+    return redirect('chatbot_conversation', conversation_id=conversation.id)
+
+
+@login_required
+def close_conversation_view(request, conversation_id):
+    """View to mark a conversation as inactive."""
+    conversation = get_object_or_404(
+        ChatConversation, 
+        id=conversation_id, 
+        user=request.user
+    )
+    
+    conversation.is_active = False
+    conversation.save()
+    
+    messages.success(request, 'Conversation closed successfully.')
+    return redirect('chatbot')

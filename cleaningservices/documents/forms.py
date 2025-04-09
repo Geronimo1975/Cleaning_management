@@ -1,5 +1,5 @@
 from django import forms
-from .models import Document, DocumentCategory, DocumentComment
+from .models import Document, DocumentCategory, DocumentComment, ChatConversation, ChatMessage
 
 
 class DocumentForm(forms.ModelForm):
@@ -79,4 +79,24 @@ class DocumentSearchForm(forms.Form):
         choices=[('', 'All Types')] + Document.TYPE_CHOICES,
         required=False,
         widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+
+class ChatMessageForm(forms.Form):
+    """Form for sending messages to the document chatbot."""
+    message = forms.CharField(
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ask a question about this document or cleaning procedures...',
+            'autocomplete': 'off'
+        }),
+        required=True
+    )
+    conversation_id = forms.IntegerField(
+        widget=forms.HiddenInput(),
+        required=False
+    )
+    document_id = forms.IntegerField(
+        widget=forms.HiddenInput(),
+        required=False
     )

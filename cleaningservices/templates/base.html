@@ -48,8 +48,18 @@
                             <a class="nav-link" href="{% url 'job_list' %}">Jobs</a>
                         </li>
                         
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'document_list' %}">Documents</a>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                Documents
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'document_list' %}">Browse Documents</a></li>
+                                <li><a class="dropdown-item" href="{% url 'chatbot' %}">Document Chatbot</a></li>
+                                {% if user.role == 'COMPANY' or user.is_staff %}
+                                <li><a class="dropdown-item" href="{% url 'upload_document' %}">Upload Document</a></li>
+                                <li><a class="dropdown-item" href="{% url 'manage_categories' %}">Manage Categories</a></li>
+                                {% endif %}
+                            </ul>
                         </li>
                         
                         {% if user.role == 'COMPANY' %}
@@ -133,6 +143,8 @@
                         {% if user.is_authenticated %}
                             <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
                             <li><a href="{% url 'job_list' %}">Jobs</a></li>
+                            <li><a href="{% url 'document_list' %}">Documents</a></li>
+                            <li><a href="{% url 'chatbot' %}">Document Chatbot</a></li>
                         {% else %}
                             <li><a href="{% url 'login' %}">Login</a></li>
                             <li><a href="{% url 'register' %}">Register</a></li>

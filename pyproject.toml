@@ -10,4 +10,6 @@ dependencies = [
     "pillow>=11.1.0",
     "psycopg2-binary>=2.9.10",
     "dj-database-url>=2.3.0",
+    "openai>=1.72.0",
+    "django-shop>=0.9.2",
 ]

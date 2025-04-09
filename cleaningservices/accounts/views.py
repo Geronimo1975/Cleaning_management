@@ -26,7 +26,7 @@ class CustomLoginView(LoginView):
         elif user.role == User.Role.COMPANY:
             return reverse_lazy('company_dashboard')
         elif user.role == User.Role.CLEANER:
-            return reverse_lazy('cleaner_dashboard')
+            return reverse_lazy('timetracking:time_clock')
         else:
             return reverse_lazy('home')
 
@@ -90,13 +90,13 @@ def complete_profile_view(request):
             
             messages.success(request, 'Profile completed successfully!')
             
-            # Redirect to appropriate dashboard
+            # Redirect to appropriate dashboard or time clock for cleaners
             if user.role == User.Role.CUSTOMER:
                 return redirect('customer_dashboard')
             elif user.role == User.Role.COMPANY:
                 return redirect('company_dashboard')
             elif user.role == User.Role.CLEANER:
-                return redirect('cleaner_dashboard')
+                return redirect('timetracking:time_clock')
     else:
         form = form_class(instance=profile_instance)
     

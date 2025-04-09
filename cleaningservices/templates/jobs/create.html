@@ -1,0 +1,448 @@
+{% extends 'base.html' %}
+
+{% block title %}Post a New Job - CleanConnect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h1 class="h3 mb-4">Post a New Cleaning Job</h1>
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Step progress indicator -->
+                        <div class="mb-4">
+                            <div class="step-progress">
+                                <div class="step active" id="step-1">
+                                    <div class="step-circle">1</div>
+                                    <div class="step-text">Basic Info</div>
+                                </div>
+                                <div class="step" id="step-2">
+                                    <div class="step-circle">2</div>
+                                    <div class="step-text">Location</div>
+                                </div>
+                                <div class="step" id="step-3">
+                                    <div class="step-circle">3</div>
+                                    <div class="step-text">Schedule</div>
+                                </div>
+                                <div class="step" id="step-4">
+                                    <div class="step-circle">4</div>
+                                    <div class="step-text">Details</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 1: Basic Information -->
+                        <div class="step-content" id="step-content-1">
+                            <h4 class="mb-3">Basic Information</h4>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.service_category.id_for_label }}" class="form-label">Service Category*</label>
+                                {{ form.service_category }}
+                                {% if form.service_category.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.service_category.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.title.id_for_label }}" class="form-label">Job Title*</label>
+                                {{ form.title }}
+                                {% if form.title.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.title.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Choose a descriptive title for your job request.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.description.id_for_label }}" class="form-label">Description*</label>
+                                {{ form.description }}
+                                {% if form.description.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.description.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Provide a detailed description of the cleaning tasks required.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.job_type.id_for_label }}" class="form-label">Job Type*</label>
+                                {{ form.job_type }}
+                                {% if form.job_type.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.job_type.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="text-end">
+                                <button type="button" class="btn btn-primary next-step" data-step="1">
+                                    Next <i class="fas fa-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 2: Location -->
+                        <div class="step-content d-none" id="step-content-2">
+                            <h4 class="mb-3">Location</h4>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.address.id_for_label }}" class="form-label">Address*</label>
+                                {{ form.address }}
+                                {% if form.address.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.address.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="{{ form.city.id_for_label }}" class="form-label">City*</label>
+                                    {{ form.city }}
+                                    {% if form.city.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.city.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.postal_code.id_for_label }}" class="form-label">Postal Code*</label>
+                                    {{ form.postal_code }}
+                                    {% if form.postal_code.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.postal_code.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="{{ form.state.id_for_label }}" class="form-label">State*</label>
+                                    {{ form.state }}
+                                    {% if form.state.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.state.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.country.id_for_label }}" class="form-label">Country*</label>
+                                    {{ form.country }}
+                                    {% if form.country.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.country.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.area_size.id_for_label }}" class="form-label">Area Size (m²)*</label>
+                                {{ form.area_size }}
+                                {% if form.area_size.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.area_size.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">The size of the area to be cleaned in square meters.</div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary prev-step" data-step="2">
+                                    <i class="fas fa-arrow-left me-1"></i> Previous
+                                </button>
+                                <button type="button" class="btn btn-primary next-step" data-step="2">
+                                    Next <i class="fas fa-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 3: Schedule -->
+                        <div class="step-content d-none" id="step-content-3">
+                            <h4 class="mb-3">Schedule</h4>
+                            
+                            <div id="one-time-fields">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="{{ form.preferred_date.id_for_label }}" class="form-label">Preferred Date*</label>
+                                        {{ form.preferred_date }}
+                                        {% if form.preferred_date.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.preferred_date.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="{{ form.preferred_time.id_for_label }}" class="form-label">Preferred Time*</label>
+                                        {{ form.preferred_time }}
+                                        {% if form.preferred_time.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.preferred_time.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="recurring-fields" class="mb-3 d-none">
+                                <label for="{{ form.recurring_frequency.id_for_label }}" class="form-label">Recurring Frequency*</label>
+                                {{ form.recurring_frequency }}
+                                {% if form.recurring_frequency.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.recurring_frequency.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div id="contract-fields" class="d-none">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="{{ form.contract_start_date.id_for_label }}" class="form-label">Contract Start Date*</label>
+                                        {{ form.contract_start_date }}
+                                        {% if form.contract_start_date.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.contract_start_date.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="{{ form.contract_end_date.id_for_label }}" class="form-label">Contract End Date*</label>
+                                        {{ form.contract_end_date }}
+                                        {% if form.contract_end_date.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.contract_end_date.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.estimated_duration.id_for_label }}" class="form-label">Estimated Duration (hours)*</label>
+                                {{ form.estimated_duration }}
+                                {% if form.estimated_duration.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.estimated_duration.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Estimate how many hours the cleaning job will take.</div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary prev-step" data-step="3">
+                                    <i class="fas fa-arrow-left me-1"></i> Previous
+                                </button>
+                                <button type="button" class="btn btn-primary next-step" data-step="3">
+                                    Next <i class="fas fa-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 4: Additional Details -->
+                        <div class="step-content d-none" id="step-content-4">
+                            <h4 class="mb-3">Additional Details</h4>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.budget.id_for_label }}" class="form-label">Budget (€)*</label>
+                                {{ form.budget }}
+                                {% if form.budget.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.budget.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Your estimated budget for this cleaning job in Euro.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.special_requirements.id_for_label }}" class="form-label">Special Requirements</label>
+                                {{ form.special_requirements }}
+                                {% if form.special_requirements.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.special_requirements.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Any special requirements or information the cleaners should know.</div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="{{ form.supply_requirements.id_for_label }}" class="form-label">Supply Requirements</label>
+                                {{ form.supply_requirements }}
+                                {% if form.supply_requirements.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.supply_requirements.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Specify if you will provide cleaning supplies or if the cleaner should bring them.</div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary prev-step" data-step="4">
+                                    <i class="fas fa-arrow-left me-1"></i> Previous
+                                </button>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check-circle me-1"></i> Post Job
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const steps = document.querySelectorAll('.step');
+        const stepContents = document.querySelectorAll('.step-content');
+        const nextButtons = document.querySelectorAll('.next-step');
+        const prevButtons = document.querySelectorAll('.prev-step');
+        const jobTypeSelect = document.getElementById('{{ form.job_type.id_for_label }}');
+        
+        // Handle "Next" button clicks
+        nextButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const currentStep = parseInt(this.dataset.step);
+                const nextStep = currentStep + 1;
+                
+                // Validate fields before proceeding
+                if (validateStep(currentStep)) {
+                    // Hide current step content
+                    document.getElementById(`step-content-${currentStep}`).classList.add('d-none');
+                    
+                    // Show next step content
+                    document.getElementById(`step-content-${nextStep}`).classList.remove('d-none');
+                    
+                    // Update step indicators
+                    steps.forEach(step => step.classList.remove('active'));
+                    document.getElementById(`step-${nextStep}`).classList.add('active');
+                    
+                    // If moving to step 3, check job type and show relevant fields
+                    if (nextStep === 3) {
+                        updateScheduleFields();
+                    }
+                }
+            });
+        });
+        
+        // Handle "Previous" button clicks
+        prevButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const currentStep = parseInt(this.dataset.step);
+                const prevStep = currentStep - 1;
+                
+                // Hide current step content
+                document.getElementById(`step-content-${currentStep}`).classList.add('d-none');
+                
+                // Show previous step content
+                document.getElementById(`step-content-${prevStep}`).classList.remove('d-none');
+                
+                // Update step indicators
+                steps.forEach(step => step.classList.remove('active'));
+                document.getElementById(`step-${prevStep}`).classList.add('active');
+            });
+        });
+        
+        // Update schedule fields based on job type
+        jobTypeSelect.addEventListener('change', function() {
+            updateScheduleFields();
+        });
+        
+        function updateScheduleFields() {
+            const jobType = jobTypeSelect.value;
+            const oneTimeFields = document.getElementById('one-time-fields');
+            const recurringFields = document.getElementById('recurring-fields');
+            const contractFields = document.getElementById('contract-fields');
+            
+            // Hide all fields first
+            oneTimeFields.classList.add('d-none');
+            recurringFields.classList.add('d-none');
+            contractFields.classList.add('d-none');
+            
+            // Show relevant fields based on job type
+            if (jobType === 'one_time') {
+                oneTimeFields.classList.remove('d-none');
+            } else if (jobType === 'recurring') {
+                oneTimeFields.classList.remove('d-none');
+                recurringFields.classList.remove('d-none');
+            } else if (jobType === 'contract') {
+                oneTimeFields.classList.remove('d-none');
+                contractFields.classList.remove('d-none');
+            }
+        }
+        
+        // Simple validation for each step
+        function validateStep(step) {
+            let isValid = true;
+            
+            if (step === 1) {
+                const category = document.getElementById('{{ form.service_category.id_for_label }}').value;
+                const title = document.getElementById('{{ form.title.id_for_label }}').value;
+                const description = document.getElementById('{{ form.description.id_for_label }}').value;
+                const jobType = document.getElementById('{{ form.job_type.id_for_label }}').value;
+                
+                if (!category || !title || !description || !jobType) {
+                    alert('Please fill in all required fields in this step.');
+                    isValid = false;
+                }
+            } else if (step === 2) {
+                const address = document.getElementById('{{ form.address.id_for_label }}').value;
+                const city = document.getElementById('{{ form.city.id_for_label }}').value;
+                const postalCode = document.getElementById('{{ form.postal_code.id_for_label }}').value;
+                const state = document.getElementById('{{ form.state.id_for_label }}').value;
+                const areaSize = document.getElementById('{{ form.area_size.id_for_label }}').value;
+                
+                if (!address || !city || !postalCode || !state || !areaSize) {
+                    alert('Please fill in all required fields in this step.');
+                    isValid = false;
+                }
+            } else if (step === 3) {
+                const preferredDate = document.getElementById('{{ form.preferred_date.id_for_label }}').value;
+                const preferredTime = document.getElementById('{{ form.preferred_time.id_for_label }}').value;
+                const estimatedDuration = document.getElementById('{{ form.estimated_duration.id_for_label }}').value;
+                const jobType = document.getElementById('{{ form.job_type.id_for_label }}').value;
+                
+                if (!preferredDate || !preferredTime || !estimatedDuration) {
+                    alert('Please fill in all required fields in this step.');
+                    isValid = false;
+                }
+                
+                if (jobType === 'recurring') {
+                    const recurringFrequency = document.getElementById('{{ form.recurring_frequency.id_for_label }}').value;
+                    if (!recurringFrequency) {
+                        alert('Please select a recurring frequency.');
+                        isValid = false;
+                    }
+                } else if (jobType === 'contract') {
+                    const contractStartDate = document.getElementById('{{ form.contract_start_date.id_for_label }}').value;
+                    const contractEndDate = document.getElementById('{{ form.contract_end_date.id_for_label }}').value;
+                    if (!contractStartDate || !contractEndDate) {
+                        alert('Please fill in contract start and end dates.');
+                        isValid = false;
+                    }
+                }
+            }
+            
+            return isValid;
+        }
+    });
+</script>
+{% endblock %}

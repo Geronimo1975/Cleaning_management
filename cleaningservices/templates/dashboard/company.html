@@ -1,0 +1,378 @@
+{% extends 'base.html' %}
+
+{% block title %}Company Dashboard - CleanConnect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3">Company Dashboard</h1>
+            <p class="text-muted">Welcome back, {{ user.company_profile.company_name }}</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="{% url 'upload_document' %}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-file-upload me-1"></i> Upload Document
+            </a>
+            <a href="{% url 'job_list' %}" class="btn btn-primary">
+                <i class="fas fa-search me-1"></i> Find Jobs
+            </a>
+        </div>
+    </div>
+    
+    <!-- Dashboard Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Active Jobs</h6>
+                            <h2 class="mb-0">{{ active_jobs }}</h2>
+                        </div>
+                        <div class="icon-bg">
+                            <i class="fas fa-briefcase fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Cleaners</h6>
+                            <h2 class="mb-0">{{ total_cleaners }}</h2>
+                        </div>
+                        <div class="icon-bg">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Success Rate</h6>
+                            <h2 class="mb-0">
+                                {% if total_bids > 0 %}
+                                    {{ accepted_bids|floatformat:0 }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </h2>
+                        </div>
+                        <div class="icon-bg">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Monthly Revenue</h6>
+                            <h2 class="mb-0">€{{ monthly_revenue|floatformat:0 }}</h2>
+                        </div>
+                        <div class="icon-bg">
+                            <i class="fas fa-euro-sign fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- New Opportunities -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">New Job Opportunities</h5>
+                    <a href="{% url 'job_list' %}" class="btn btn-sm btn-link">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if new_opportunities %}
+                        <div class="list-group list-group-flush">
+                            {% for job in new_opportunities %}
+                                <a href="{% url 'job_detail' job.id %}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ job.title }}</h6>
+                                        <small class="text-muted">{{ job.created_at|date:"M d, Y" }}</small>
+                                    </div>
+                                    <p class="mb-1 small">{{ job.service_category.name }} - {{ job.city }}</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-success fw-bold">Budget: €{{ job.budget }}</small>
+                                        <span class="badge bg-primary">{{ job.get_job_type_display }}</span>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="p-4 text-center">
+                            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                            <p>No new job opportunities available at the moment.</p>
+                            <a href="{% url 'job_list' %}" class="btn btn-sm btn-primary">Browse All Jobs</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Active Assignments -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Active Assignments</h5>
+                    <a href="{% url 'job_list' %}" class="btn btn-sm btn-link">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_assignments %}
+                        <div class="list-group list-group-flush">
+                            {% for assignment in recent_assignments %}
+                                <a href="{% url 'job_detail' assignment.job_request.id %}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ assignment.job_request.title }}</h6>
+                                        <span class="badge {% if assignment.status == 'scheduled' %}bg-primary{% elif assignment.status == 'in_progress' %}bg-warning{% elif assignment.status == 'completed' %}bg-success{% else %}bg-secondary{% endif %}">
+                                            {{ assignment.get_status_display }}
+                                        </span>
+                                    </div>
+                                    <p class="mb-1 small">Assigned to: {{ assignment.cleaner.user.get_full_name }}</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">{{ assignment.scheduled_start|date:"M d, Y H:i" }}</small>
+                                        <small class="text-primary">{{ assignment.job_request.city }}</small>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="p-4 text-center">
+                            <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                            <p>No active assignments at the moment.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Recent Time Entries -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Time Entries</h5>
+                    <a href="{% url 'payroll_overview' %}" class="btn btn-sm btn-link">Manage Payroll</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_time_entries %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Cleaner</th>
+                                        <th>Job</th>
+                                        <th>Clock In</th>
+                                        <th>Clock Out</th>
+                                        <th>Duration</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for entry in recent_time_entries %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if entry.cleaner.user.profile_picture %}
+                                                        <img src="{{ entry.cleaner.user.profile_picture.url }}" class="rounded-circle me-2" width="32" height="32">
+                                                    {% else %}
+                                                        <div class="avatar-placeholder bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                                            <span>{{ entry.cleaner.user.first_name|first }}{{ entry.cleaner.user.last_name|first }}</span>
+                                                        </div>
+                                                    {% endif %}
+                                                    <span>{{ entry.cleaner.user.get_full_name }}</span>
+                                                </div>
+                                            </td>
+                                            <td>{{ entry.assignment.job_request.title|truncatechars:25 }}</td>
+                                            <td>{{ entry.clock_in|date:"M d, H:i" }}</td>
+                                            <td>{% if entry.clock_out %}{{ entry.clock_out|date:"M d, H:i" }}{% else %}<span class="badge bg-warning">Active</span>{% endif %}</td>
+                                            <td>
+                                                {% if entry.total_minutes %}
+                                                    {{ entry.total_minutes|floatformat:0 }} mins
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge {% if entry.status == 'active' %}bg-warning{% elif entry.status == 'completed' %}bg-primary{% elif entry.status == 'verified' %}bg-success{% else %}bg-secondary{% endif %}">
+                                                    {{ entry.get_status_display }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-4 text-center">
+                            <i class="fas fa-clock fa-3x text-muted mb-3"></i>
+                            <p>No time entries recorded yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Documents -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Documents</h5>
+                    <a href="{% url 'document_list' %}" class="btn btn-sm btn-link">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_documents %}
+                        <div class="list-group list-group-flush">
+                            {% for document in recent_documents %}
+                                <a href="{% url 'document_detail' document.id %}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ document.title }}</h6>
+                                        <small class="text-muted">{{ document.created_at|date:"M d" }}</small>
+                                    </div>
+                                    <p class="mb-1 small">{{ document.category.name }}</p>
+                                    <small class="text-muted">
+                                        <i class="{% if document.document_type == 'procedure' %}fas fa-file-alt{% elif document.document_type == 'solution' %}fas fa-flask{% elif document.document_type == 'safety' %}fas fa-shield-alt{% elif document.document_type == 'equipment' %}fas fa-tools{% elif document.document_type == 'training' %}fas fa-graduation-cap{% else %}fas fa-file{% endif %} me-1"></i>
+                                        {{ document.get_document_type_display }}
+                                    </small>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="p-4 text-center">
+                            <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                            <p>No documents uploaded yet.</p>
+                            <a href="{% url 'upload_document' %}" class="btn btn-sm btn-primary">Upload Document</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Quick Links -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Quick Links</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'manage_contracts' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-file-contract me-1"></i> Manage Contracts
+                        </a>
+                        <a href="{% url 'create_pay_period' %}" class="btn btn-outline-success">
+                            <i class="fas fa-money-check-alt me-1"></i> Create Pay Period
+                        </a>
+                        <a href="{% url 'payroll_settings' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-cog me-1"></i> Payroll Settings
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Performance Chart -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Performance Overview</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <canvas id="revenueChart" height="250"></canvas>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-4">
+                        <h6>Job Success Rate</h6>
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ avg_rating|floatformat:0 }}%;" aria-valuenow="{{ avg_rating|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100">{{ avg_rating|floatformat:0 }}%</div>
+                        </div>
+                        <small class="text-muted">Based on customer feedback</small>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6>Bid Acceptance Rate</h6>
+                        <div class="progress" style="height: 20px;">
+                            {% if total_bids > 0 %}
+                                {% with acceptance_rate=accepted_bids|floatformat:0 %}
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: {{ acceptance_rate }}%;" aria-valuenow="{{ acceptance_rate }}" aria-valuemin="0" aria-valuemax="100">{{ acceptance_rate }}%</div>
+                                {% endwith %}
+                            {% else %}
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                            {% endif %}
+                        </div>
+                        <small class="text-muted">{{ accepted_bids }} out of {{ total_bids }} bids accepted</small>
+                    </div>
+                    
+                    <div>
+                        <h6>Active Cleaners</h6>
+                        <div class="progress" style="height: 20px;">
+                            {% if total_cleaners > 0 %}
+                                {% with cleaner_rate=active_cleaners|floatformat:0 %}
+                                <div class="progress-bar bg-info" role="progressbar" style="width: {{ cleaner_rate }}%;" aria-valuenow="{{ cleaner_rate }}" aria-valuemin="0" aria-valuemax="100">{{ cleaner_rate }}%</div>
+                                {% endwith %}
+                            {% else %}
+                                <div class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                            {% endif %}
+                        </div>
+                        <small class="text-muted">{{ active_cleaners }} out of {{ total_cleaners }} cleaners active</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/charts.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Revenue chart
+        const ctx = document.getElementById('revenueChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Monthly Revenue (€)',
+                    data: [0, 0, 0, 0, 0, {{ monthly_revenue|floatformat:0 }}],
+                    backgroundColor: 'rgba(0, 82, 204, 0.7)',
+                    borderColor: 'rgba(0, 82, 204, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '€' + value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,691 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ job.title }} - CleanConnect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'job_list' %}">Jobs</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ job.title }}</li>
+        </ol>
+    </nav>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Job Details Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Job Details</h5>
+                    <span class="badge {% if job.status == 'draft' %}bg-secondary{% elif job.status == 'published' %}bg-primary{% elif job.status == 'assigned' %}bg-info{% elif job.status == 'in_progress' %}bg-warning{% elif job.status == 'completed' %}bg-success{% elif job.status == 'cancelled' %}bg-danger{% endif %}">
+                        {{ job.get_status_display }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <h4 class="card-title">{{ job.title }}</h4>
+                    <h6 class="card-subtitle mb-3 text-muted">{{ job.service_category.name }}</h6>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <p class="mb-2"><i class="fas fa-map-marker-alt text-secondary me-2"></i> {{ job.address }}, {{ job.city }}, {{ job.postal_code }}</p>
+                            <p class="mb-2"><i class="fas fa-calendar-alt text-secondary me-2"></i> {{ job.preferred_date|date:"F d, Y" }}</p>
+                            <p class="mb-2"><i class="fas fa-clock text-secondary me-2"></i> {{ job.preferred_time|time:"H:i" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2"><i class="fas fa-tag text-secondary me-2"></i> {{ job.get_job_type_display }}</p>
+                            <p class="mb-2"><i class="fas fa-ruler text-secondary me-2"></i> {{ job.area_size }} m²</p>
+                            <p class="mb-2"><i class="fas fa-hourglass-half text-secondary me-2"></i> Est. {{ job.estimated_duration }} hours</p>
+                            <p class="mb-2"><i class="fas fa-euro-sign text-secondary me-2"></i> Budget: <strong>€{{ job.budget }}</strong></p>
+                        </div>
+                    </div>
+                    
+                    {% if job.job_type == 'recurring' and job.recurring_frequency %}
+                        <div class="alert alert-info">
+                            <p class="mb-0"><i class="fas fa-redo me-2"></i> <strong>Recurring Service:</strong> {{ job.get_recurring_frequency_display }}</p>
+                        </div>
+                    {% elif job.job_type == 'contract' and job.contract_start_date and job.contract_end_date %}
+                        <div class="alert alert-info">
+                            <p class="mb-0"><i class="fas fa-file-contract me-2"></i> <strong>Contract Period:</strong> {{ job.contract_start_date|date:"M d, Y" }} to {{ job.contract_end_date|date:"M d, Y" }}</p>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-4">
+                        <h6>Description</h6>
+                        <p>{{ job.description }}</p>
+                    </div>
+                    
+                    {% if job.special_requirements %}
+                        <div class="mb-4">
+                            <h6>Special Requirements</h6>
+                            <p>{{ job.special_requirements }}</p>
+                        </div>
+                    {% endif %}
+                    
+                    {% if job.supply_requirements %}
+                        <div class="mb-4">
+                            <h6>Supply Requirements</h6>
+                            <p>{{ job.supply_requirements }}</p>
+                        </div>
+                    {% endif %}
+                    
+                    {% if user.role == 'CUSTOMER' and job.status == 'published' %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'manage_bids' job.id %}" class="btn btn-primary">
+                                <i class="fas fa-gavel me-1"></i> Manage Bids ({{ bids.count }})
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if user.role == 'COMPANY' and job.status == 'published' and not bid %}
+                <!-- Bid Form for Companies -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Place Your Bid</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="{% url 'job_detail' job.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="submit_bid" value="1">
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="{{ bid_form.price.id_for_label }}" class="form-label">Your Price (€)</label>
+                                    {{ bid_form.price }}
+                                    {% if bid_form.price.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ bid_form.price.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ bid_form.estimated_hours.id_for_label }}" class="form-label">Estimated Hours</label>
+                                    {{ bid_form.estimated_hours }}
+                                    {% if bid_form.estimated_hours.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ bid_form.estimated_hours.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ bid_form.can_start_at.id_for_label }}" class="form-label">When can you start?</label>
+                                {{ bid_form.can_start_at }}
+                                {% if bid_form.can_start_at.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ bid_form.can_start_at.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ bid_form.message.id_for_label }}" class="form-label">Message to Customer</label>
+                                {{ bid_form.message }}
+                                {% if bid_form.message.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ bid_form.message.errors.0 }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Explain why you're the right choice for this job.</div>
+                            </div>
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-1"></i> Submit Bid
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            {% elif user.role == 'COMPANY' and bid %}
+                <!-- Existing Bid Details for Companies -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Your Bid</h5>
+                        <span class="badge {% if bid.status == 'pending' %}bg-warning{% elif bid.status == 'accepted' %}bg-success{% elif bid.status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                            {{ bid.get_status_display }}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Your Price:</strong></p>
+                                <h4 class="text-success">€{{ bid.price }}</h4>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Estimated Hours:</strong></p>
+                                <h4>{{ bid.estimated_hours }} hours</h4>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <p class="mb-1"><strong>Start Date:</strong></p>
+                            <p>{{ bid.can_start_at|date:"F d, Y H:i" }}</p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <p class="mb-1"><strong>Your Message:</strong></p>
+                            <p>{{ bid.message }}</p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <p class="mb-1"><strong>Submitted on:</strong></p>
+                            <p>{{ bid.created_at|date:"F d, Y H:i" }}</p>
+                        </div>
+                        
+                        {% if bid.status == 'accepted' and not assignment %}
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'assign_cleaner' job.id bid.id %}" class="btn btn-success">
+                                    <i class="fas fa-user-plus me-1"></i> Assign Cleaner
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+            
+            {% if user.role == 'CLEANER' and assignment %}
+                <!-- Time Tracking Controls for Cleaners -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Time Tracking</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <p><strong>Assignment Details:</strong></p>
+                            <p>Scheduled for: {{ assignment.scheduled_start|date:"F d, Y" }} from {{ assignment.scheduled_start|date:"H:i" }} to {{ assignment.scheduled_end|date:"H:i" }}</p>
+                        </div>
+                        
+                        {% if not current_time_entry %}
+                            <!-- Clock In -->
+                            <form method="post" action="{% url 'job_detail' job.id %}" class="time-tracking-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="clock_in" value="1">
+                                <input type="hidden" name="lat" id="lat" value="">
+                                <input type="hidden" name="lng" id="lng" value="">
+                                
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-success btn-lg" id="clockInBtn">
+                                        <i class="fas fa-play-circle me-1"></i> Clock In
+                                    </button>
+                                </div>
+                            </form>
+                        {% else %}
+                            <!-- Active Time Entry -->
+                            <div class="alert alert-info mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div>
+                                        <h6 class="alert-heading">Active Time Entry</h6>
+                                        <p class="mb-0">Started at: {{ current_time_entry.clock_in|date:"H:i" }}</p>
+                                        {% if current_time_entry.break_start and not current_time_entry.break_end %}
+                                            <p class="mb-0">On break since: {{ current_time_entry.break_start|date:"H:i" }}</p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="ms-auto">
+                                        <span id="timeElapsed" class="badge bg-warning fs-6">00:00:00</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row g-2">
+                                {% if current_time_entry.break_start and not current_time_entry.break_end %}
+                                    <!-- End Break -->
+                                    <div class="col-12">
+                                        <form method="post" action="{% url 'job_detail' job.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="break_end" value="1">
+                                            
+                                            <div class="d-grid gap-2">
+                                                <button type="submit" class="btn btn-warning btn-lg">
+                                                    <i class="fas fa-mug-hot me-1"></i> End Break
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                {% elif not current_time_entry.break_start or current_time_entry.break_end %}
+                                    <!-- Start Break or Clock Out buttons -->
+                                    <div class="col-6">
+                                        <form method="post" action="{% url 'job_detail' job.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="break_start" value="1">
+                                            
+                                            <div class="d-grid gap-2">
+                                                <button type="submit" class="btn btn-warning btn-lg">
+                                                    <i class="fas fa-coffee me-1"></i> Take Break
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <div class="col-6">
+                                        <form method="post" action="{% url 'job_detail' job.id %}" class="time-tracking-form">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="clock_out" value="1">
+                                            <input type="hidden" name="lat" id="lat_out" value="">
+                                            <input type="hidden" name="lng" id="lng_out" value="">
+                                            
+                                            <div class="d-grid gap-2">
+                                                <button type="submit" class="btn btn-danger btn-lg" id="clockOutBtn">
+                                                    <i class="fas fa-stop-circle me-1"></i> Clock Out
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Time Entry History -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Time Entry History</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if time_entries %}
+                            <div class="table-responsive">
+                                <table class="table mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Clock In</th>
+                                            <th>Clock Out</th>
+                                            <th>Duration</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for entry in time_entries %}
+                                            <tr>
+                                                <td>{{ entry.clock_in|date:"M d, Y" }}</td>
+                                                <td>{{ entry.clock_in|date:"H:i" }}</td>
+                                                <td>{% if entry.clock_out %}{{ entry.clock_out|date:"H:i" }}{% else %}<span class="badge bg-warning">Active</span>{% endif %}</td>
+                                                <td>
+                                                    {% if entry.total_minutes %}
+                                                        {{ entry.total_minutes|floatformat:0 }} mins
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <span class="badge {% if entry.status == 'active' %}bg-warning{% elif entry.status == 'completed' %}bg-primary{% elif entry.status == 'verified' %}bg-success{% else %}bg-secondary{% endif %}">
+                                                        {{ entry.get_status_display }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="p-4 text-center">
+                                <p class="mb-0">No time entries recorded yet.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if assignment.status == 'in_progress' %}
+                    <!-- Job Completion Form for Cleaners -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Complete Job</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-3">When you have finished all tasks, mark the job as complete.</p>
+                            
+                            <form method="post" action="{% url 'job_detail' job.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="complete_job" value="1">
+                                
+                                <div class="mb-3">
+                                    <label for="{{ completion_form.completed_at.id_for_label }}" class="form-label">Completion Date/Time</label>
+                                    {{ completion_form.completed_at }}
+                                    {% if completion_form.completed_at.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ completion_form.completed_at.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        {{ completion_form.tasks_completed }}
+                                        <label class="form-check-label" for="{{ completion_form.tasks_completed.id_for_label }}">
+                                            I confirm that all requested tasks have been completed
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ completion_form.issues_reported.id_for_label }}" class="form-label">Issues or Notes (Optional)</label>
+                                    {{ completion_form.issues_reported }}
+                                    {% if completion_form.issues_reported.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ completion_form.issues_reported.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-check-circle me-1"></i> Mark as Completed
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endif %}
+            
+            {% if user.role == 'CUSTOMER' and job.status == 'completed' and completion and feedback_form %}
+                <!-- Feedback Form for Customers -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Provide Feedback</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Please rate the cleaning service you received.</p>
+                        
+                        <form method="post" action="{% url 'job_detail' job.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="submit_feedback" value="1">
+                            
+                            <div class="mb-3">
+                                <label for="{{ feedback_form.customer_rating.id_for_label }}" class="form-label">Rating</label>
+                                {{ feedback_form.customer_rating }}
+                                {% if feedback_form.customer_rating.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ feedback_form.customer_rating.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ feedback_form.customer_feedback.id_for_label }}" class="form-label">Feedback</label>
+                                {{ feedback_form.customer_feedback }}
+                                {% if feedback_form.customer_feedback.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ feedback_form.customer_feedback.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-1"></i> Submit Feedback
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Customer Information -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Customer Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        {% if job.customer.user.profile_picture %}
+                            <img src="{{ job.customer.user.profile_picture.url }}" alt="{{ job.customer.user.get_full_name }}" class="rounded-circle img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+                        {% else %}
+                            <div class="avatar-placeholder bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 100px; height: 100px;">
+                                <span class="h3">{{ job.customer.user.first_name|first }}{{ job.customer.user.last_name|first }}</span>
+                            </div>
+                        {% endif %}
+                        <h5 class="mt-3">{{ job.customer.user.get_full_name }}</h5>
+                    </div>
+                    
+                    {% if user.role != 'CUSTOMER' %}
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-2">Contact Information</h6>
+                            <p class="mb-1"><i class="fas fa-envelope text-secondary me-2"></i> {{ job.customer.user.email }}</p>
+                            {% if job.customer.user.phone %}
+                                <p class="mb-1"><i class="fas fa-phone text-secondary me-2"></i> {{ job.customer.user.phone }}</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Location</h6>
+                        <p class="mb-0">{{ job.city }}, {{ job.state }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            {% if assignment %}
+                <!-- Assignment Details -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Assignment Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-2">Assigned Cleaner</h6>
+                            <div class="d-flex align-items-center">
+                                {% if assignment.cleaner.user.profile_picture %}
+                                    <img src="{{ assignment.cleaner.user.profile_picture.url }}" alt="{{ assignment.cleaner.user.get_full_name }}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                {% else %}
+                                    <div class="avatar-placeholder bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                        <span>{{ assignment.cleaner.user.first_name|first }}{{ assignment.cleaner.user.last_name|first }}</span>
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    <p class="mb-0 fw-medium">{{ assignment.cleaner.user.get_full_name }}</p>
+                                    <small class="text-muted">{{ assignment.cleaner.experience_years }} years experience</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-2">Schedule</h6>
+                            <p class="mb-1"><strong>Start:</strong> {{ assignment.scheduled_start|date:"F d, Y H:i" }}</p>
+                            <p class="mb-0"><strong>End:</strong> {{ assignment.scheduled_end|date:"F d, Y H:i" }}</p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-2">Status</h6>
+                            <span class="badge {% if assignment.status == 'scheduled' %}bg-primary{% elif assignment.status == 'in_progress' %}bg-warning{% elif assignment.status == 'completed' %}bg-success{% else %}bg-secondary{% endif %} p-2">
+                                {{ assignment.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            {% if user.role == 'CUSTOMER' and job.status == 'published' %}
+                <!-- Bids Summary -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Bids ({{ bids.count }})</h5>
+                        <a href="{% url 'manage_bids' job.id %}" class="btn btn-sm btn-primary">Manage</a>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if bids %}
+                            <div class="list-group list-group-flush">
+                                {% for bid in bids %}
+                                    <div class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="mb-0">{{ bid.company.company_name }}</h6>
+                                            <span class="badge {% if bid.status == 'pending' %}bg-warning{% elif bid.status == 'accepted' %}bg-success{% elif bid.status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                                {{ bid.get_status_display }}
+                                            </span>
+                                        </div>
+                                        <p class="mb-2"><strong>Price:</strong> €{{ bid.price }}</p>
+                                        <p class="mb-2"><strong>Est. Hours:</strong> {{ bid.estimated_hours }}</p>
+                                        <p class="mb-0 small text-muted">{{ bid.created_at|date:"M d, Y" }}</p>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="p-4 text-center">
+                                <p class="mb-0">No bids received yet.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+            
+            {% if completion %}
+                <!-- Completion Details -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Completion Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2"><strong>Completed On:</strong> {{ completion.completed_at|date:"F d, Y H:i" }}</p>
+                        
+                        {% if completion.tasks_completed %}
+                            <p class="mb-2 text-success"><i class="fas fa-check-circle me-1"></i> All tasks completed</p>
+                        {% endif %}
+                        
+                        {% if completion.issues_reported %}
+                            <div class="mb-3">
+                                <h6>Issues Reported</h6>
+                                <p>{{ completion.issues_reported }}</p>
+                            </div>
+                        {% endif %}
+                        
+                        {% if completion.customer_rating %}
+                            <div class="mb-3">
+                                <h6>Customer Rating</h6>
+                                <div class="rating text-warning mb-2">
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= completion.customer_rating %}
+                                            <i class="fas fa-star"></i>
+                                        {% else %}
+                                            <i class="far fa-star"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                    <span class="ms-1">{{ completion.customer_rating }}/5</span>
+                                </div>
+                                
+                                {% if completion.customer_feedback %}
+                                    <div class="mb-2">
+                                        <h6>Feedback</h6>
+                                        <p>{{ completion.customer_feedback }}</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // For time tracking - get location
+        const clockInBtn = document.getElementById('clockInBtn');
+        const clockOutBtn = document.getElementById('clockOutBtn');
+        const timeTrackingForms = document.querySelectorAll('.time-tracking-form');
+        
+        if (timeTrackingForms.length > 0) {
+            timeTrackingForms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    // Try to get location
+                    if (navigator.geolocation) {
+                        e.preventDefault();
+                        
+                        navigator.geolocation.getCurrentPosition(
+                            function(position) {
+                                // For clock in form
+                                const latField = form.querySelector('#lat');
+                                const lngField = form.querySelector('#lng');
+                                if (latField && lngField) {
+                                    latField.value = position.coords.latitude;
+                                    lngField.value = position.coords.longitude;
+                                }
+                                
+                                // For clock out form
+                                const latOutField = form.querySelector('#lat_out');
+                                const lngOutField = form.querySelector('#lng_out');
+                                if (latOutField && lngOutField) {
+                                    latOutField.value = position.coords.latitude;
+                                    lngOutField.value = position.coords.longitude;
+                                }
+                                
+                                form.submit();
+                            },
+                            function(error) {
+                                console.error("Error getting location:", error);
+                                // Submit the form anyway if location access is denied
+                                form.submit();
+                            }
+                        );
+                    } else {
+                        // If geolocation is not supported, just submit the form
+                        form.submit();
+                    }
+                });
+            });
+        }
+        
+        // For active time tracking - show elapsed time
+        const timeElapsedElement = document.getElementById('timeElapsed');
+        {% if current_time_entry %}
+        if (timeElapsedElement) {
+            const startTime = new Date("{{ current_time_entry.clock_in|date:'c' }}").getTime();
+            
+            // If on break, don't update the timer
+            {% if current_time_entry.break_start and not current_time_entry.break_end %}
+            const breakStartTime = new Date("{{ current_time_entry.break_start|date:'c' }}").getTime();
+            const elapsedBeforeBreak = breakStartTime - startTime;
+            
+            // Display fixed time
+            const hours = Math.floor(elapsedBeforeBreak / (1000 * 60 * 60));
+            const minutes = Math.floor((elapsedBeforeBreak % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((elapsedBeforeBreak % (1000 * 60)) / 1000);
+            
+            timeElapsedElement.textContent = 
+                (hours < 10 ? '0' + hours : hours) + ':' +
+                (minutes < 10 ? '0' + minutes : minutes) + ':' +
+                (seconds < 10 ? '0' + seconds : seconds) + ' (on break)';
+            {% else %}
+            
+            // Update the timer every second
+            function updateTimer() {
+                const now = new Date().getTime();
+                let elapsed = now - startTime;
+                
+                // Subtract break time if any
+                {% if current_time_entry.break_start and current_time_entry.break_end %}
+                const breakStart = new Date("{{ current_time_entry.break_start|date:'c' }}").getTime();
+                const breakEnd = new Date("{{ current_time_entry.break_end|date:'c' }}").getTime();
+                const breakDuration = breakEnd - breakStart;
+                elapsed -= breakDuration;
+                {% endif %}
+                
+                const hours = Math.floor(elapsed / (1000 * 60 * 60));
+                const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
+                
+                timeElapsedElement.textContent = 
+                    (hours < 10 ? '0' + hours : hours) + ':' +
+                    (minutes < 10 ? '0' + minutes : minutes) + ':' +
+                    (seconds < 10 ? '0' + seconds : seconds);
+            }
+            
+            // Initial update
+            updateTimer();
+            
+            // Update every second
+            setInterval(updateTimer, 1000);
+            {% endif %}
+        }
+        {% endif %}
+    });
+</script>
+{% endblock %}

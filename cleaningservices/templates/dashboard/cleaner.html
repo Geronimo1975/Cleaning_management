@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+
+{% block title %}Cleaner Dashboard - CleanConnect{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3">Cleaner Dashboard</h1>
+            <p class="text-muted">Welcome back, {{ user.get_full_name }}</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            {% if active_time_entry %}
+                <a href="{% url 'job_detail' active_time_entry.assignment.job_request.id %}" class="btn btn-warning">
+                    <i class="fas fa-clock me-1"></i> Active Time Entry
+                </a>
+            {% else %}
+                <a href="{% url 'job_list' %}" class="btn btn-primary">
+                    <i class="fas fa-briefcase me-1"></i> View Assigned Jobs
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Dashboard Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Total Jobs</h6>
+                            <h2 class="mb-0">{{ total_jobs }}</h2>
+                        </div>
+                        <div class="icon-bg">
+                            <i class="fas fa-briefcase fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Completed</h6>
+                            <h2 class="mb-0">{{ completed_jobs }}</h2>
+                        </div>
+                        <div class="icon-bg">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Upcoming</h6>
+                            <h2 class="mb-0">{{ upcoming_jobs }}</h2>
+                        </div>
+                        <div class="icon-bg">
+                            <i class="fas fa-calendar-alt fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Hours this Month</h6>
+                            <h2 class="mb-0">{{ monthly_hours|floatformat:1 }}</h2>
+                        </div>
+                        <div class="icon-bg">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if active_time_entry %}
+    <!-- Active Time Entry Alert -->
+    <div class="alert alert-warning mb-4">
+        <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-stopwatch fa-2x me-3"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h5 class="alert-heading">Active Time Entry</h5>
+                <p class="mb-0">You have an active time entry for job: <strong>{{ active_time_entry.assignment.job_request.title }}</strong></p>
+                <p class="mb-0">Started at: <strong>{{ active_time_entry.clock_in|date:"M d, Y H:i" }}</strong></p>
+            </div>
+            <div class="flex-shrink-0">
+                <a href="{% url 'job_detail' active_time_entry.assignment.job_request.id %}" class="btn btn-outline-dark">
+                    Go to Job
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="row">
+        <!-- Upcoming Assignments -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Upcoming Assignments</h5>
+                    <a href="{% url 'job_list' %}" class="btn btn-sm btn-link">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if upcoming_assignments %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Job</th>
+                                        <th>Location</th>
+                                        <th>Date & Time</th>
+                                        <th>Duration</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for assignment in upcoming_assignments %}
+                                        <tr>
+                                            <td>
+                                                <a href="{% url 'job_detail' assignment.job_request.id %}" class="text-decoration-none fw-medium text-dark">
+                                                    {{ assignment.job_request.title }}
+                                                </a>
+                                                <div class="small text-muted">{{ assignment.job_request.service_category.name }}</div>
+                                            </td>
+                                            <td>
+                                                {{ assignment.job_request.city }}
+                                                <div class="small text-muted">{{ assignment.job_request.address|truncatechars:20 }}</div>
+                                            </td>
+                                            <td>
+                                                <div>{{ assignment.scheduled_start|date:"M d, Y" }}</div>
+                                                <div class="small text-muted">{{ assignment.scheduled_start|date:"H:i" }} - {{ assignment.scheduled_end|date:"H:i" }}</div>
+                                            </td>
+                                            <td>
+                                                {% with duration=assignment.scheduled_end|timeuntil:assignment.scheduled_start %}
+                                                    {{ duration }}
+                                                {% endwith %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">{{ assignment.get_status_display }}</span>
+                                            </td>
+                                            <td>
+                                                <a href="{% url 'job_detail' assignment.job_request.id %}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                
+                                                {% if assignment.status == 'scheduled' %}
+                                                    <a href="{% url 'job_detail' assignment.job_request.id %}" class="btn btn-sm btn-outline-success">
+                                                        <i class="fas fa-clock"></i>
+                                                    </a>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-4 text-center">
+                            <i class="fas fa-calendar-day fa-3x text-muted mb-3"></i>
+                            <p>No upcoming assignments scheduled.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Recent Time Entries -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Time Entries</h5>
+                    <a href="{% url 'time_tracking_history' %}" class="btn btn-sm btn-link">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_time_entries %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Job</th>
+                                        <th>Clock In</th>
+                                        <th>Clock Out</th>
+                                        <th>Duration</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for entry in recent_time_entries %}
+                                        <tr>
+                                            <td>
+                                                <a href="{% url 'job_detail' entry.assignment.job_request.id %}" class="text-decoration-none fw-medium text-dark">
+                                                    {{ entry.assignment.job_request.title|truncatechars:25 }}
+                                                </a>
+                                            </td>
+                                            <td>{{ entry.clock_in|date:"M d, H:i" }}</td>
+                                            <td>{% if entry.clock_out %}{{ entry.clock_out|date:"M d, H:i" }}{% else %}<span class="badge bg-warning">Active</span>{% endif %}</td>
+                                            <td>
+                                                {% if entry.total_minutes %}
+                                                    {{ entry.total_minutes|floatformat:0 }} mins
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge {% if entry.status == 'active' %}bg-warning{% elif entry.status == 'completed' %}bg-primary{% elif entry.status == 'verified' %}bg-success{% else %}bg-secondary{% endif %}">
+                                                    {{ entry.get_status_display }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-4 text-center">
+                            <i class="fas fa-clock fa-3x text-muted mb-3"></i>
+                            <p>No time entries recorded yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Recent Payslips -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Payslips</h5>
+                    <a href="{% url 'cleaner_payslips' %}" class="btn btn-sm btn-link">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_payslips %}
+                        <div class="list-group list-group-flush">
+                            {% for payslip in recent_payslips %}
+                                <a href="{% url 'cleaner_payslip_detail' payslip.id %}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Payslip: {{ payslip.pay_period.start_date|date:"M Y" }}</h6>
+                                        <span class="badge {% if payslip.is_paid %}bg-success{% else %}bg-warning{% endif %}">
+                                            {% if payslip.is_paid %}Paid{% else %}Pending{% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <p class="mb-1">Period: {{ payslip.pay_period.start_date|date:"d M" }} - {{ payslip.pay_period.end_date|date:"d M" }}</p>
+                                        <span class="fw-bold">€{{ payslip.net_pay|floatformat:2 }}</span>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="p-4 text-center">
+                            <i class="fas fa-file-invoice-dollar fa-3x text-muted mb-3"></i>
+                            <p>No payslips available yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Work Hours Chart -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Work Hours</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="workHoursChart" height="230"></canvas>
+                </div>
+            </div>
+            
+            <!-- Quick Links -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Quick Links</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'time_tracking_history' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-history me-1"></i> Time Tracking History
+                        </a>
+                        <a href="{% url 'cleaner_payslips' %}" class="btn btn-outline-success">
+                            <i class="fas fa-file-invoice-dollar me-1"></i> View All Payslips
+                        </a>
+                        <a href="{% url 'document_list' %}" class="btn btn-outline-info">
+                            <i class="fas fa-file-alt me-1"></i> Cleaning Documents
+                        </a>
+                        <a href="{% url 'profile' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-user-cog me-1"></i> Update Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/charts.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Work hours chart
+        const ctx = document.getElementById('workHoursChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Hours Worked',
+                    data: [0, 0, 0, 0, 0, 0, {{ monthly_hours|floatformat:1 }}],
+                    backgroundColor: 'rgba(0, 135, 90, 0.7)',
+                    borderColor: 'rgba(0, 135, 90, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Hours'
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

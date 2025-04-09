@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+
+{% block title %}CleanConnect - Professional Cleaning Services{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold">Find Professional Cleaning Services</h1>
+                <p class="lead my-4">Connect with reliable cleaning services and cleaners for your home and business needs. Get quotes, schedule appointments, and manage all your cleaning needs in one place.</p>
+                
+                {% if not user.is_authenticated %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                        <a href="{% url 'register' %}" class="btn btn-primary btn-lg px-4 me-md-2">Get Started</a>
+                        <a href="{% url 'login' %}" class="btn btn-outline-secondary btn-lg px-4">Login</a>
+                    </div>
+                {% else %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                        <a href="{% url 'dashboard' %}" class="btn btn-primary btn-lg px-4 me-md-2">Go to Dashboard</a>
+                        {% if user.role == 'CUSTOMER' %}
+                            <a href="{% url 'create_job' %}" class="btn btn-outline-secondary btn-lg px-4">Post a Job</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="col-lg-6 d-none d-lg-block">
+                <div class="hero-image text-center">
+                    <svg width="100%" height="400" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Simple cleaning illustration -->
+                        <rect x="100" y="250" width="400" height="10" fill="#F4F5F7" />
+                        <rect x="220" y="100" width="20" height="150" fill="#00875A" />
+                        <circle cx="230" cy="80" r="30" fill="#0052CC" />
+                        <rect x="225" y="150" width="150" height="8" fill="#00875A" />
+                        <path d="M380 155 Q420 120 460 155" stroke="#0052CC" stroke-width="8" fill="none" />
+                        <circle cx="460" cy="180" r="25" fill="#FF5630" />
+                        <rect x="300" y="260" width="60" height="40" fill="#172B4D" />
+                        <rect x="320" y="250" width="20" height="10" fill="#172B4D" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="how-it-works py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5">How It Works</h2>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="icon-wrapper mb-3">
+                            <i class="fas fa-search fa-3x text-primary"></i>
+                        </div>
+                        <h3 class="card-title h5">1. Find Services</h3>
+                        <p class="card-text">Browse cleaning services or post a specific job request tailored to your needs.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="icon-wrapper mb-3">
+                            <i class="fas fa-comments fa-3x text-primary"></i>
+                        </div>
+                        <h3 class="card-title h5">2. Compare & Choose</h3>
+                        <p class="card-text">Review offers from different companies, check ratings, and select the best match.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="icon-wrapper mb-3">
+                            <i class="fas fa-calendar-check fa-3x text-primary"></i>
+                        </div>
+                        <h3 class="card-title h5">3. Book & Manage</h3>
+                        <p class="card-text">Schedule the service, track progress, and manage payments all in one platform.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Service Categories -->
+<section class="services py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Our Cleaning Services</h2>
+        
+        <div class="row g-4">
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="service-card text-center p-3">
+                    <div class="icon-wrapper mb-3">
+                        <i class="fas fa-home fa-2x text-secondary"></i>
+                    </div>
+                    <h3 class="h6">Residential Cleaning</h3>
+                </div>
+            </div>
+            
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="service-card text-center p-3">
+                    <div class="icon-wrapper mb-3">
+                        <i class="fas fa-building fa-2x text-secondary"></i>
+                    </div>
+                    <h3 class="h6">Commercial Cleaning</h3>
+                </div>
+            </div>
+            
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="service-card text-center p-3">
+                    <div class="icon-wrapper mb-3">
+                        <i class="fas fa-broom fa-2x text-secondary"></i>
+                    </div>
+                    <h3 class="h6">Deep Cleaning</h3>
+                </div>
+            </div>
+            
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="service-card text-center p-3">
+                    <div class="icon-wrapper mb-3">
+                        <i class="fas fa-wind fa-2x text-secondary"></i>
+                    </div>
+                    <h3 class="h6">Window Cleaning</h3>
+                </div>
+            </div>
+            
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="service-card text-center p-3">
+                    <div class="icon-wrapper mb-3">
+                        <i class="fas fa-couch fa-2x text-secondary"></i>
+                    </div>
+                    <h3 class="h6">Upholstery Cleaning</h3>
+                </div>
+            </div>
+            
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="service-card text-center p-3">
+                    <div class="icon-wrapper mb-3">
+                        <i class="fas fa-box-open fa-2x text-secondary"></i>
+                    </div>
+                    <h3 class="h6">Move-in/Move-out</h3>
+                </div>
+            </div>
+            
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="service-card text-center p-3">
+                    <div class="icon-wrapper mb-3">
+                        <i class="fas fa-leaf fa-2x text-secondary"></i>
+                    </div>
+                    <h3 class="h6">Eco-friendly Cleaning</h3>
+                </div>
+            </div>
+            
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="service-card text-center p-3">
+                    <div class="icon-wrapper mb-3">
+                        <i class="fas fa-spray-can fa-2x text-secondary"></i>
+                    </div>
+                    <h3 class="h6">Sanitization</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Testimonials -->
+<section class="testimonials py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5">What Our Users Say</h2>
+        
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rating text-warning me-2">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <span class="text-muted">5.0</span>
+                        </div>
+                        <p class="card-text">"The platform made it so easy to find reliable cleaners for my home. The booking process was smooth, and I love the ability to track when the cleaner arrives."</p>
+                        <div class="d-flex align-items-center mt-3">
+                            <div class="avatar-placeholder bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                <span>JM</span>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Julia Müller</h6>
+                                <small class="text-muted">Homeowner in Berlin</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rating text-warning me-2">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                            <span class="text-muted">4.5</span>
+                        </div>
+                        <p class="card-text">"As a cleaning company owner, this platform has helped us grow our business significantly. The job management system is excellent, and the payroll feature saves us time."</p>
+                        <div class="d-flex align-items-center mt-3">
+                            <div class="avatar-placeholder bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                <span>TW</span>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Thomas Weber</h6>
+                                <small class="text-muted">Cleaning Company in Munich</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rating text-warning me-2">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <span class="text-muted">5.0</span>
+                        </div>
+                        <p class="card-text">"I love the flexibility this platform gives me as a cleaner. The time tracking app is easy to use, and I appreciate getting paid on time every month through the system."</p>
+                        <div class="d-flex align-items-center mt-3">
+                            <div class="avatar-placeholder bg-accent text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                <span>SL</span>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Sophie Lehmann</h6>
+                                <small class="text-muted">Professional Cleaner in Hamburg</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Join Platform CTA -->
+<section class="cta py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-10 col-lg-8">
+                <div class="card border-0 shadow-lg">
+                    <div class="card-body p-5 text-center">
+                        <h2 class="card-title mb-3">Join Our Cleaning Services Platform Today</h2>
+                        <p class="card-text lead mb-4">Whether you're looking for cleaning services, offering cleaning services, or working as a cleaner, we have the tools to help you succeed.</p>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                            {% if not user.is_authenticated %}
+                                <a href="{% url 'register' %}" class="btn btn-primary btn-lg px-4">Register Now</a>
+                                <a href="{% url 'login' %}" class="btn btn-outline-secondary btn-lg px-4">Login</a>
+                            {% else %}
+                                <a href="{% url 'dashboard' %}" class="btn btn-primary btn-lg px-4">Go to Dashboard</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

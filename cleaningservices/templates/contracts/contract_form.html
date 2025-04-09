@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.id %}Edit{% else %}Create{% endif %} Contract{% endblock %}
+
+{% block extra_css %}
+<style>
+    .json-editor {
+        font-family: monospace;
+        width: 100%;
+        min-height: 200px;
+    }
+    
+    .contract-type-explanation {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">{% if form.instance.id %}Edit{% else %}Create{% endif %} Contract</h1>
+            
+            <div class="mb-3">
+                <a href="{% url 'contracts:list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Contracts
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Contract Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+                        
+                        {% if selected_template %}
+                        <div class="alert alert-info mb-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Using template: <strong>{{ selected_template.name }}</strong>
+                            <p class="mb-0 small">This contract will include terms and conditions from the selected template.</p>
+                        </div>
+                        {% else %}
+                        <div class="mb-4">
+                            <label for="{{ form.template.id_for_label }}" class="form-label">Contract Template</label>
+                            {{ form.template }}
+                            {% if form.template.errors %}
+                            <div class="text-danger">
+                                {{ form.template.errors }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">Select a template to use for this contract, or leave blank to create a custom contract.</div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.contract_number.id_for_label }}" class="form-label">Contract Number*</label>
+                                {{ form.contract_number }}
+                                {% if form.contract_number.errors %}
+                                <div class="text-danger">
+                                    {{ form.contract_number.errors }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">A unique identifier for this contract</div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.title.id_for_label }}" class="form-label">Contract Title*</label>
+                                {{ form.title }}
+                                {% if form.title.errors %}
+                                <div class="text-danger">
+                                    {{ form.title.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                            <div class="text-danger">
+                                {{ form.description.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.cleaner.id_for_label }}" class="form-label">Cleaner*</label>
+                            {{ form.cleaner }}
+                            {% if form.cleaner.errors %}
+                            <div class="text-danger">
+                                {{ form.cleaner.errors }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">The cleaner who will be covered by this contract</div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.start_date.id_for_label }}" class="form-label">Start Date*</label>
+                                {{ form.start_date }}
+                                {% if form.start_date.errors %}
+                                <div class="text-danger">
+                                    {{ form.start_date.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.end_date.id_for_label }}" class="form-label">End Date</label>
+                                {{ form.end_date }}
+                                {% if form.end_date.errors %}
+                                <div class="text-danger">
+                                    {{ form.end_date.errors }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">Leave blank for indefinite contracts</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.contract_type.id_for_label }}" class="form-label">Contract Type*</label>
+                            {{ form.contract_type }}
+                            {% if form.contract_type.errors %}
+                            <div class="text-danger">
+                                {{ form.contract_type.errors }}
+                            </div>
+                            {% endif %}
+                            
+                            <div id="fullTimeInfo" class="contract-type-explanation alert alert-info mt-2">
+                                <h6>Full-time Employment</h6>
+                                <p class="mb-0">Full-time employment typically involves 35-40 hours per week, with standard benefits and protections under German labor law.</p>
+                            </div>
+                            
+                            <div id="partTimeInfo" class="contract-type-explanation alert alert-info mt-2">
+                                <h6>Part-time Employment</h6>
+                                <p class="mb-0">Part-time employment usually involves fewer than 30 hours per week, with proportional benefits according to German labor laws.</p>
+                            </div>
+                            
+                            <div id="miniJobInfo" class="contract-type-explanation alert alert-info mt-2">
+                                <h6>Mini-job</h6>
+                                <p class="mb-0">Mini-jobs in Germany are employment agreements with monthly earnings up to €520, with simplified tax and social security requirements.</p>
+                            </div>
+                            
+                            <div id="freelanceInfo" class="contract-type-explanation alert alert-info mt-2">
+                                <h6>Freelance/Self-employed</h6>
+                                <p class="mb-0">Freelance contracts establish a business-to-business relationship and do not involve employer-employee obligations like social security contributions from the company.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="{{ form.working_hours_weekly.id_for_label }}" class="form-label">Weekly Hours</label>
+                                {{ form.working_hours_weekly }}
+                                {% if form.working_hours_weekly.errors %}
+                                <div class="text-danger">
+                                    {{ form.working_hours_weekly.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="{{ form.hourly_rate.id_for_label }}" class="form-label">Hourly Rate (€)</label>
+                                {{ form.hourly_rate }}
+                                {% if form.hourly_rate.errors %}
+                                <div class="text-danger">
+                                    {{ form.hourly_rate.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="{{ form.monthly_salary.id_for_label }}" class="form-label">Monthly Salary (€)</label>
+                                {{ form.monthly_salary }}
+                                {% if form.monthly_salary.errors %}
+                                <div class="text-danger">
+                                    {{ form.monthly_salary.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.terms_and_conditions.id_for_label }}" class="form-label">Terms and Conditions (JSON)*</label>
+                            {{ form.terms_and_conditions }}
+                            {% if form.terms_and_conditions.errors %}
+                            <div class="text-danger">
+                                {{ form.terms_and_conditions.errors }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">
+                                Specific terms and conditions for this contract in JSON format.
+                                For example: {"notice_period": "4 weeks", "probation_period": "6 months", "non_compete": true}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.contract_file.id_for_label }}" class="form-label">Contract File (PDF)</label>
+                            {{ form.contract_file }}
+                            {% if form.contract_file.errors %}
+                            <div class="text-danger">
+                                {{ form.contract_file.errors }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">Upload a PDF version of the contract (optional)</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'contracts:list' %}" class="btn btn-outline-secondary me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                {% if form.instance.id %}Update{% else %}Create{% endif %} Contract
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Help & Guidelines</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Creating Compliant Contracts</h6>
+                    <p>Follow these guidelines when creating contracts to ensure compliance with German labor laws:</p>
+                    
+                    <ul>
+                        <li><strong>Clear Job Description:</strong> Include specific duties and responsibilities.</li>
+                        <li><strong>Working Hours:</strong> Specify regular working hours, break times, and overtime agreements.</li>
+                        <li><strong>Compensation:</strong> Clearly define hourly rates or monthly salary, along with any bonuses or benefits.</li>
+                        <li><strong>Notice Period:</strong> Include appropriate notice periods for termination (typically 4 weeks).</li>
+                        <li><strong>Probation Period:</strong> If applicable, include a probation period (up to 6 months).</li>
+                    </ul>
+                    
+                    <h6>Required Terms for Different Contract Types</h6>
+                    <p>Depending on the contract type, different terms may be required:</p>
+                    
+                    <ul class="small">
+                        <li><strong>Full-time/Part-time:</strong> Standard employment rights, including paid leave, sick pay, and social security contributions.</li>
+                        <li><strong>Mini-job:</strong> For jobs paying up to €520 per month, with simplified tax and social security.</li>
+                        <li><strong>Freelance:</strong> Specify service scope, payment terms, and clarify self-employment status to avoid pseudo-employment issues.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // JSON validation for terms and conditions
+        const jsonField = document.getElementById('{{ form.terms_and_conditions.id_for_label }}');
+        
+        if (jsonField) {
+            jsonField.addEventListener('blur', function() {
+                try {
+                    // Try to parse the JSON
+                    if (jsonField.value.trim() !== '') {
+                        const parsed = JSON.parse(jsonField.value);
+                        // Format it nicely
+                        jsonField.value = JSON.stringify(parsed, null, 2);
+                        // Remove any error styles
+                        jsonField.classList.remove('is-invalid');
+                    }
+                } catch (e) {
+                    // If JSON is invalid, add error styles
+                    jsonField.classList.add('is-invalid');
+                    // Don't modify the content
+                }
+            });
+        }
+        
+        // Contract type explanation toggler
+        const contractTypeSelect = document.getElementById('{{ form.contract_type.id_for_label }}');
+        const contractTypeInfoDivs = document.querySelectorAll('.contract-type-explanation');
+        
+        function showContractTypeInfo() {
+            // Hide all explanations
+            contractTypeInfoDivs.forEach(div => {
+                div.style.display = 'none';
+            });
+            
+            // Show the relevant explanation
+            const selectedValue = contractTypeSelect.value;
+            let infoElementId = '';
+            
+            if (selectedValue === 'full_time') {
+                infoElementId = 'fullTimeInfo';
+            } else if (selectedValue === 'part_time') {
+                infoElementId = 'partTimeInfo';
+            } else if (selectedValue === 'mini_job') {
+                infoElementId = 'miniJobInfo';
+            } else if (selectedValue === 'freelance') {
+                infoElementId = 'freelanceInfo';
+            }
+            
+            if (infoElementId) {
+                document.getElementById(infoElementId).style.display = 'block';
+            }
+        }
+        
+        if (contractTypeSelect) {
+            // Show info for initial selection
+            showContractTypeInfo();
+            
+            // Update info when selection changes
+            contractTypeSelect.addEventListener('change', showContractTypeInfo);
+        }
+    });
+</script>
+{% endblock %}

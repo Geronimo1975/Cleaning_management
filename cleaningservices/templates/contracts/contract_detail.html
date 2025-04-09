@@ -1,0 +1,509 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Contract Details: {{ contract.contract_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">Contract Details: #{{ contract.contract_number }}</h1>
+            
+            <div class="mb-3">
+                <a href="{% url 'contracts:list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Contracts
+                </a>
+                
+                {% if perms.contracts.change_contract and contract.status == 'draft' %}
+                <a href="{% url 'contracts:edit' contract_id=contract.id %}" class="btn btn-outline-primary ms-2">
+                    <i class="fas fa-edit me-2"></i>Edit Contract
+                </a>
+                {% endif %}
+                
+                {% if user.role == 'company' and contract.status == 'draft' %}
+                <a href="{% url 'contracts:detail' contract_id=contract.id %}?action=submit" class="btn btn-primary ms-2">
+                    <i class="fas fa-paper-plane me-2"></i>Submit for Approval
+                </a>
+                {% endif %}
+                
+                {% if contract.contract_file %}
+                <a href="{{ contract.contract_file.url }}" target="_blank" class="btn btn-outline-info ms-2">
+                    <i class="fas fa-download me-2"></i>Download Contract
+                </a>
+                {% endif %}
+            </div>
+            
+            <!-- Status Badge -->
+            <div class="mb-3">
+                Status: 
+                {% if contract.status == 'draft' %}
+                    <span class="badge bg-secondary">Draft</span>
+                {% elif contract.status == 'pending_cleaner' %}
+                    <span class="badge bg-warning">Pending Cleaner Approval</span>
+                {% elif contract.status == 'pending_company' %}
+                    <span class="badge bg-warning">Pending Company Approval</span>
+                {% elif contract.status == 'active' %}
+                    <span class="badge bg-success">Active</span>
+                {% elif contract.status == 'expired' %}
+                    <span class="badge bg-danger">Expired</span>
+                {% elif contract.status == 'terminated' %}
+                    <span class="badge bg-danger">Terminated</span>
+                {% endif %}
+                
+                <!-- Approval actions -->
+                {% if user.role == 'cleaner' and contract.status == 'pending_cleaner' %}
+                <div class="d-inline-block ms-3">
+                    <a href="{% url 'contracts:approve' contract_id=contract.id %}" class="btn btn-sm btn-success" 
+                       onclick="return confirm('Are you sure you want to approve this contract?');">
+                        <i class="fas fa-check me-1"></i>Approve
+                    </a>
+                    <a href="#" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                        <i class="fas fa-times me-1"></i>Reject
+                    </a>
+                </div>
+                {% endif %}
+                
+                {% if user.role == 'company' and contract.status == 'pending_company' %}
+                <div class="d-inline-block ms-3">
+                    <a href="{% url 'contracts:approve' contract_id=contract.id %}" class="btn btn-sm btn-success"
+                       onclick="return confirm('Are you sure you want to approve this contract?');">
+                        <i class="fas fa-check me-1"></i>Approve
+                    </a>
+                    <a href="#" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                        <i class="fas fa-times me-1"></i>Reject
+                    </a>
+                </div>
+                {% endif %}
+                
+                <!-- Termination action -->
+                {% if user.role == 'company' and contract.status == 'active' %}
+                <div class="d-inline-block ms-3">
+                    <a href="#" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#terminateModal">
+                        <i class="fas fa-ban me-1"></i>Terminate Contract
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#details" data-bs-toggle="tab">Contract Details</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#terms" data-bs-toggle="tab">Terms & Conditions</a>
+                        </li>
+                        {% if addenda %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="#addenda" data-bs-toggle="tab">Addenda ({{ addenda.count }})</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content">
+                        <div class="tab-pane active" id="details">
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <h5>Basic Information</h5>
+                                    <dl class="row">
+                                        <dt class="col-sm-4">Contract Title</dt>
+                                        <dd class="col-sm-8">{{ contract.title }}</dd>
+                                        
+                                        <dt class="col-sm-4">Contract Number</dt>
+                                        <dd class="col-sm-8">{{ contract.contract_number }}</dd>
+                                        
+                                        <dt class="col-sm-4">Contract Type</dt>
+                                        <dd class="col-sm-8">
+                                            {% if contract.contract_type == 'full_time' %}
+                                                Full-time Employment
+                                            {% elif contract.contract_type == 'part_time' %}
+                                                Part-time Employment
+                                            {% elif contract.contract_type == 'mini_job' %}
+                                                Mini-job
+                                            {% elif contract.contract_type == 'freelance' %}
+                                                Freelance/Self-employed
+                                            {% endif %}
+                                        </dd>
+                                        
+                                        <dt class="col-sm-4">Created On</dt>
+                                        <dd class="col-sm-8">{{ contract.created_at|date:"F j, Y, g:i a" }}</dd>
+                                        
+                                        <dt class="col-sm-4">Last Updated</dt>
+                                        <dd class="col-sm-8">{{ contract.updated_at|date:"F j, Y, g:i a" }}</dd>
+                                    </dl>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <h5>Period and Compensation</h5>
+                                    <dl class="row">
+                                        <dt class="col-sm-4">Start Date</dt>
+                                        <dd class="col-sm-8">{{ contract.start_date|date:"F j, Y" }}</dd>
+                                        
+                                        <dt class="col-sm-4">End Date</dt>
+                                        <dd class="col-sm-8">{{ contract.end_date|date:"F j, Y"|default:"Open-ended" }}</dd>
+                                        
+                                        <dt class="col-sm-4">Weekly Hours</dt>
+                                        <dd class="col-sm-8">{{ contract.working_hours_weekly|default:"Not specified" }}</dd>
+                                        
+                                        <dt class="col-sm-4">Hourly Rate</dt>
+                                        <dd class="col-sm-8">
+                                            {% if contract.hourly_rate %}
+                                                €{{ contract.hourly_rate }} per hour
+                                            {% else %}
+                                                Not applicable
+                                            {% endif %}
+                                        </dd>
+                                        
+                                        <dt class="col-sm-4">Monthly Salary</dt>
+                                        <dd class="col-sm-8">
+                                            {% if contract.monthly_salary %}
+                                                €{{ contract.monthly_salary }} per month
+                                            {% else %}
+                                                Not applicable
+                                            {% endif %}
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <h5>Company Information</h5>
+                                    <dl class="row">
+                                        <dt class="col-sm-4">Company Name</dt>
+                                        <dd class="col-sm-8">{{ contract.company.company_name }}</dd>
+                                        
+                                        <dt class="col-sm-4">Business ID</dt>
+                                        <dd class="col-sm-8">{{ contract.company.business_registration_number }}</dd>
+                                        
+                                        <dt class="col-sm-4">Tax ID</dt>
+                                        <dd class="col-sm-8">{{ contract.company.tax_id }}</dd>
+                                        
+                                        <dt class="col-sm-4">Address</dt>
+                                        <dd class="col-sm-8">
+                                            {{ contract.company.address }}<br>
+                                            {{ contract.company.postal_code }} {{ contract.company.city }}<br>
+                                            {{ contract.company.state }}, {{ contract.company.country }}
+                                        </dd>
+                                    </dl>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <h5>Cleaner Information</h5>
+                                    <dl class="row">
+                                        <dt class="col-sm-4">Name</dt>
+                                        <dd class="col-sm-8">{{ contract.cleaner.user.get_full_name }}</dd>
+                                        
+                                        <dt class="col-sm-4">Email</dt>
+                                        <dd class="col-sm-8">{{ contract.cleaner.user.email }}</dd>
+                                        
+                                        {% if contract.cleaner.is_freelancer %}
+                                        <dt class="col-sm-4">Tax ID</dt>
+                                        <dd class="col-sm-8">{{ contract.cleaner.tax_id }}</dd>
+                                        {% endif %}
+                                        
+                                        <dt class="col-sm-4">Experience</dt>
+                                        <dd class="col-sm-8">{{ contract.cleaner.experience_years }} years</dd>
+                                        
+                                        <dt class="col-sm-4">Specializations</dt>
+                                        <dd class="col-sm-8">
+                                            {% for specialization in contract.cleaner.specializations %}
+                                                <span class="badge bg-info me-1">{{ specialization }}</span>
+                                            {% empty %}
+                                                Not specified
+                                            {% endfor %}
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                            
+                            {% if contract.description %}
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h5>Description</h5>
+                                    <p>{{ contract.description }}</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if contract.status == 'terminated' %}
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="alert alert-danger">
+                                        <h5><i class="fas fa-exclamation-triangle me-2"></i>This contract has been terminated</h5>
+                                        <p><strong>Termination Date:</strong> {{ contract.termination_date|date:"F j, Y" }}</p>
+                                        <p><strong>Reason:</strong> {{ contract.termination_reason }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="row">
+                                <div class="col-12">
+                                    <h5>Approval Status</h5>
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <div>
+                                            <strong>Company Approval:</strong>
+                                            {% if contract.is_company_approved %}
+                                                <span class="text-success"><i class="fas fa-check-circle me-1"></i>Approved</span>
+                                                <small class="d-block text-muted">{{ contract.company_signed_date|date:"F j, Y, g:i a" }}</small>
+                                                {% if contract.company_signatory %}
+                                                <small class="d-block text-muted">by {{ contract.company_signatory.get_full_name }}</small>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-danger"><i class="fas fa-times-circle me-1"></i>Not Approved</span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div>
+                                            <strong>Cleaner Approval:</strong>
+                                            {% if contract.is_cleaner_approved %}
+                                                <span class="text-success"><i class="fas fa-check-circle me-1"></i>Approved</span>
+                                                <small class="d-block text-muted">{{ contract.cleaner_signed_date|date:"F j, Y, g:i a" }}</small>
+                                            {% else %}
+                                                <span class="text-danger"><i class="fas fa-times-circle me-1"></i>Not Approved</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-pane" id="terms">
+                            {% if contract.terms_and_conditions %}
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Contract Terms</h5>
+                                </div>
+                                <div class="card-body">
+                                    <pre class="bg-light p-3 rounded">{{ contract.terms_and_conditions|pprint }}</pre>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if contract.template %}
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Contract Template Content</h5>
+                                </div>
+                                <div class="card-body">
+                                    {{ contract.template.template_content|safe }}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if addenda %}
+                        <div class="tab-pane" id="addenda">
+                            <h5 class="mb-3">Contract Addenda</h5>
+                            <div class="list-group">
+                                {% for addendum in addenda %}
+                                <a href="{% url 'contracts:addendum_detail' addendum_id=addendum.id %}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ addendum.title }}</h6>
+                                        <small>{{ addendum.created_at|date:"M d, Y" }}</small>
+                                    </div>
+                                    <p class="mb-1">{{ addendum.description|truncatewords:20 }}</p>
+                                    <small>
+                                        {% if addendum.status == 'draft' %}
+                                            <span class="badge bg-secondary">Draft</span>
+                                        {% elif addendum.status == 'pending_approval' %}
+                                            <span class="badge bg-warning">Pending Approval</span>
+                                        {% elif addendum.status == 'approved' %}
+                                            <span class="badge bg-success">Approved</span>
+                                        {% elif addendum.status == 'rejected' %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% endif %}
+                                        
+                                        <span class="ms-2">Effective: {{ addendum.effective_date|date:"M d, Y" }}</span>
+                                    </small>
+                                </a>
+                                {% endfor %}
+                            </div>
+                            
+                            {% if contract.status == 'active' %}
+                            <div class="mt-3">
+                                <a href="{% url 'contracts:create_addendum' contract_id=contract.id %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-plus me-2"></i>Create New Addendum
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Contract Timeline</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Created</h6>
+                                <small>{{ contract.created_at|date:"M d, Y" }}</small>
+                            </div>
+                            <p class="mb-1 text-muted">Contract was created by {{ contract.created_by.get_full_name }}</p>
+                        </div>
+                        
+                        {% if contract.status != 'draft' %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Submitted for Approval</h6>
+                                <small>{{ contract.updated_at|date:"M d, Y" }}</small>
+                            </div>
+                            <p class="mb-1 text-muted">Contract was submitted for review</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if contract.is_cleaner_approved %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Cleaner Approved</h6>
+                                <small>{{ contract.cleaner_signed_date|date:"M d, Y" }}</small>
+                            </div>
+                            <p class="mb-1 text-muted">{{ contract.cleaner.user.get_full_name }} approved the contract</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if contract.is_company_approved %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Company Approved</h6>
+                                <small>{{ contract.company_signed_date|date:"M d, Y" }}</small>
+                            </div>
+                            <p class="mb-1 text-muted">{{ contract.company.company_name }} approved the contract</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if contract.status == 'active' %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Contract Activated</h6>
+                                <small>{{ contract.updated_at|date:"M d, Y" }}</small>
+                            </div>
+                            <p class="mb-1 text-muted">Contract became active after approval from both parties</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if contract.status == 'terminated' %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Contract Terminated</h6>
+                                <small>{{ contract.termination_date|date:"M d, Y" }}</small>
+                            </div>
+                            <p class="mb-1 text-muted">Contract was terminated</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            {% if contract.status == 'draft' and perms.contracts.delete_contract %}
+            <div class="card shadow-sm border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">Danger Zone</h5>
+                </div>
+                <div class="card-body">
+                    <p>Deleting this contract will permanently remove it from the system.</p>
+                    <form method="post" action="{% url 'contracts:delete' contract_id=contract.id %}" onsubmit="return confirm('Are you sure you want to delete this contract? This action cannot be undone.');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>Delete Contract
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rejectModalLabel">Reject Contract</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Please provide a reason for rejecting this contract:</p>
+                <form id="rejectForm" action="{% url 'contracts:reject' contract_id=contract.id %}" method="get">
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Reason for Rejection</label>
+                        <textarea class="form-control" id="reason" name="reason" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="document.getElementById('rejectForm').submit();">Reject Contract</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Terminate Modal -->
+<div class="modal fade" id="terminateModal" tabindex="-1" aria-labelledby="terminateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="terminateModalLabel">Terminate Contract</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Terminating a contract will end the employment relationship between the company and the cleaner.</p>
+                <form id="terminateForm" action="{% url 'contracts:terminate' contract_id=contract.id %}" method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="termination_date" class="form-label">Termination Date</label>
+                        <input type="date" class="form-control" id="termination_date" name="termination_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="termination_reason" class="form-label">Reason for Termination</label>
+                        <textarea class="form-control" id="termination_reason" name="termination_reason" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="document.getElementById('terminateForm').submit();">Terminate Contract</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Activate Bootstrap tabs
+    document.addEventListener('DOMContentLoaded', function() {
+        const triggerTabList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tab"]'));
+        triggerTabList.forEach(function(triggerEl) {
+            new bootstrap.Tab(triggerEl);
+        });
+        
+        // Set minimum date for termination date to today
+        const terminationDateInput = document.getElementById('termination_date');
+        if (terminationDateInput) {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            terminationDateInput.min = `${yyyy}-${mm}-${dd}`;
+            terminationDateInput.value = `${yyyy}-${mm}-${dd}`;
+        }
+    });
+</script>
+{% endblock %}

@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'documents',
     'payroll',
     'dashboard',
+    'shop',
 ]
 
 MIDDLEWARE = [

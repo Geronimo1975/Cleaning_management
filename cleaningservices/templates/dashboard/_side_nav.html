@@ -1,0 +1,138 @@
+{% load static %}
+
+<div class="card border-0 shadow-sm sticky-top" style="top: 20px;">
+    <div class="card-body p-0">
+        <div class="user-profile text-center py-4 bg-primary text-white">
+            {% if user.profile_picture %}
+                <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}" class="rounded-circle img-fluid user-avatar mb-3">
+            {% else %}
+                <div class="avatar-placeholder mb-3">
+                    <i class="fas fa-user-circle fa-5x"></i>
+                </div>
+            {% endif %}
+            <h5 class="mb-1">{{ user.get_full_name }}</h5>
+            <p class="mb-0 small">{{ user.get_role_display }}</p>
+        </div>
+        
+        <div class="dashboard-menu">
+            <ul class="list-group list-group-flush">
+                {% if user.role == 'CUSTOMER' %}
+                    <!-- Customer Menu -->
+                    <li class="list-group-item {% if active_menu == 'dashboard' %}active{% endif %}">
+                        <a href="{% url 'customer_dashboard' %}" class="d-flex align-items-center">
+                            <i class="fas fa-tachometer-alt me-3"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if active_menu == 'jobs' %}active{% endif %}">
+                        <a href="{% url 'job_list' %}" class="d-flex align-items-center">
+                            <i class="fas fa-briefcase me-3"></i> My Jobs
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if active_menu == 'create_job' %}active{% endif %}">
+                        <a href="{% url 'create_job' %}" class="d-flex align-items-center">
+                            <i class="fas fa-plus-circle me-3"></i> Post New Job
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if active_menu == 'documents' %}active{% endif %}">
+                        <a href="{% url 'document_list' %}" class="d-flex align-items-center">
+                            <i class="fas fa-file-alt me-3"></i> Documents
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if active_menu == 'shop' %}active{% endif %}">
+                        <a href="{% url 'shop' %}" class="d-flex align-items-center">
+                            <i class="fas fa-shopping-cart me-3"></i> Shop
+                        </a>
+                    </li>
+                
+                {% elif user.role == 'COMPANY' %}
+                    <!-- Company Menu -->
+                    <li class="list-group-item {% if active_menu == 'dashboard' %}active{% endif %}">
+                        <a href="{% url 'company_dashboard' %}" class="d-flex align-items-center">
+                            <i class="fas fa-tachometer-alt me-3"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if active_menu == 'job_opportunities' %}active{% endif %}">
+                        <a href="{% url 'job_opportunities' %}" class="d-flex align-items-center">
+                            <i class="fas fa-briefcase me-3"></i> Job Opportunities
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if active_menu == 'my_bids' %}active{% endif %}">
+                        <a href="{% url 'company_bids' %}" class="d-flex align-items-center">
+                            <i class="fas fa-gavel me-3"></i> My Bids
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if active_menu == 'assignments' %}active{% endif %}">
+                        <a href="{% url 'company_assignments' %}" class="d-flex align-items-center">
+                            <i class="fas fa-calendar-check me-3"></i> Assignments
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if active_menu == 'cleaners' %}active{% endif %}">
+                        <a href="{% url 'company_cleaners' %}" class="d-flex align-items-center">
+                            <i class="fas fa-users me-3"></i> Cleaners
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if active_menu == 'payroll' %}active{% endif %}">
+                        <a href="{% url 'payroll_overview' %}" class="d-flex align-items-center">
+                            <i class="fas fa-money-bill-wave me-3"></i> Payroll
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if active_menu == 'documents' %}active{% endif %}">
+                        <a href="{% url 'document_list' %}" class="d-flex align-items-center">
+                            <i class="fas fa-file-alt me-3"></i> Documents
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if active_menu == 'shop' %}active{% endif %}">
+                        <a href="{% url 'shop' %}" class="d-flex align-items-center">
+                            <i class="fas fa-shopping-cart me-3"></i> Shop
+                        </a>
+                    </li>
+                
+                {% elif user.role == 'CLEANER' %}
+                    <!-- Cleaner Menu -->
+                    <li class="list-group-item {% if active_menu == 'dashboard' %}active{% endif %}">
+                        <a href="{% url 'cleaner_dashboard' %}" class="d-flex align-items-center">
+                            <i class="fas fa-tachometer-alt me-3"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if active_menu == 'assignments' %}active{% endif %}">
+                        <a href="{% url 'cleaner_assignments' %}" class="d-flex align-items-center">
+                            <i class="fas fa-calendar-check me-3"></i> My Assignments
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if active_menu == 'time_tracking' %}active{% endif %}">
+                        <a href="{% url 'time_tracking_history' %}" class="d-flex align-items-center">
+                            <i class="fas fa-clock me-3"></i> Time Tracking
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if active_menu == 'payslips' %}active{% endif %}">
+                        <a href="{% url 'cleaner_payslips' %}" class="d-flex align-items-center">
+                            <i class="fas fa-file-invoice-dollar me-3"></i> Payslips
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if active_menu == 'documents' %}active{% endif %}">
+                        <a href="{% url 'document_list' %}" class="d-flex align-items-center">
+                            <i class="fas fa-file-alt me-3"></i> Documents
+                        </a>
+                    </li>
+                    <li class="list-group-item {% if active_menu == 'shop' %}active{% endif %}">
+                        <a href="{% url 'shop' %}" class="d-flex align-items-center">
+                            <i class="fas fa-shopping-cart me-3"></i> Shop
+                        </a>
+                    </li>
+                {% endif %}
+                
+                <!-- Common Menu Items -->
+                <li class="list-group-item {% if active_menu == 'profile' %}active{% endif %}">
+                    <a href="{% url 'profile' %}" class="d-flex align-items-center">
+                        <i class="fas fa-user-cog me-3"></i> My Profile
+                    </a>
+                </li>
+                <li class="list-group-item">
+                    <a href="{% url 'logout' %}" class="d-flex align-items-center">
+                        <i class="fas fa-sign-out-alt me-3"></i> Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ product.title }} - CleanConnect Shop{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'shop' %}">Shop</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'product_category' product.category.slug %}">{{ product.category.name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ product.title }}</li>
+        </ol>
+    </nav>
+    
+    <div class="row">
+        <!-- Product Images -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <img src="{{ product.image_main.url }}" alt="{{ product.title }}" class="img-fluid rounded main-product-image" id="mainProductImage">
+                    
+                    {% if product.images.all %}
+                        <div class="product-thumbnails mt-3 d-flex">
+                            <div class="thumbnail-item active me-2" onclick="changeImage('{{ product.image_main.url }}')">
+                                <img src="{{ product.image_main.url }}" alt="{{ product.title }}" class="img-thumbnail">
+                            </div>
+                            
+                            {% for image in product.images.all %}
+                                <div class="thumbnail-item me-2" onclick="changeImage('{{ image.image.url }}')">
+                                    <img src="{{ image.image.url }}" alt="{{ image.alt_text|default:product.title }}" class="img-thumbnail">
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Product Details -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h1 class="h3 mb-2">{{ product.title }}</h1>
+                    
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="ratings me-2">
+                            {% for i in "12345" %}
+                                {% if forloop.counter <= product.rating|floatformat:"0" %}
+                                    <i class="fas fa-star text-warning"></i>
+                                {% else %}
+                                    <i class="far fa-star text-warning"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <span class="text-muted small">{{ product.rating }} ({{ reviews.count }} reviews)</span>
+                    </div>
+                    
+                    <div class="pricing mb-4">
+                        {% if product.sale_price %}
+                            <span class="text-decoration-line-through text-muted me-2">€{{ product.price }}</span>
+                            <span class="text-danger fw-bold h4">€{{ product.sale_price }}</span>
+                            {% with savings=product.price|floatformat:2|sub:product.sale_price|floatformat:2 %}
+                                <span class="badge bg-danger ms-2">Save €{{ savings }}</span>
+                            {% endwith %}
+                        {% else %}
+                            <span class="fw-bold h4">€{{ product.price }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="product-description mb-4">
+                        <p>{{ product.description|linebreaks }}</p>
+                    </div>
+                    
+                    {% if product.features %}
+                        <h5 class="mb-3">Key Features</h5>
+                        <ul class="list-group list-group-flush mb-4">
+                            {% for feature in product.features %}
+                                <li class="list-group-item bg-transparent"><i class="fas fa-check text-success me-2"></i> {{ feature }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    
+                    <div class="asin-info mb-4 small text-muted">
+                        {% if product.amazon_asin %}
+                            <p>ASIN: {{ product.amazon_asin }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <form action="{% url 'affiliate_redirect' %}" method="post" class="d-grid mb-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="product_id" value="{{ product.id }}">
+                        <input type="hidden" name="redirect_url" value="{{ product.affiliate_url }}">
+                        <button type="submit" class="btn btn-primary btn-lg">View on Amazon</button>
+                    </form>
+                    
+                    <div class="small text-muted">
+                        <p class="mb-0">
+                            <i class="fas fa-info-circle me-1"></i> 
+                            As an Amazon Associate, we earn from qualifying purchases.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reviews Section -->
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h3 class="h5 mb-0">Customer Reviews</h3>
+                </div>
+                <div class="card-body">
+                    {% if reviews %}
+                        {% for review in reviews %}
+                            <div class="review mb-4">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="ratings me-2">
+                                        {% for i in "12345" %}
+                                            {% if forloop.counter <= review.rating %}
+                                                <i class="fas fa-star text-warning"></i>
+                                            {% else %}
+                                                <i class="far fa-star text-warning"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <h5 class="h6 mb-0">{{ review.title }}</h5>
+                                </div>
+                                <div class="review-meta text-muted small mb-2">
+                                    <span>By {{ review.user.get_full_name }}</span>
+                                    <span class="mx-1">|</span>
+                                    <span>{{ review.created_at|date:"F j, Y" }}</span>
+                                </div>
+                                <p class="mb-0">{{ review.comment }}</p>
+                                {% if not forloop.last %}
+                                    <hr class="my-3">
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="far fa-comment-dots fa-3x text-muted mb-3"></i>
+                            <p class="mb-0">No reviews yet. Be the first to review this product!</p>
+                        </div>
+                    {% endif %}
+                    
+                    {% if user.is_authenticated %}
+                        <div class="review-form mt-4">
+                            <h4 class="h5 mb-3">{% if has_reviewed %}Edit Your Review{% else %}Write a Review{% endif %}</h4>
+                            <form method="post" action="{% url 'submit_product_review' product.slug %}">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label class="form-label">Rating</label>
+                                    <div class="rating-stars mb-2">
+                                        {% for choice in review_form.rating.field.choices %}
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input rating-input" type="radio" name="rating" id="rating-{{ choice.0 }}" value="{{ choice.0 }}" {% if review_form.rating.value == choice.0 %}checked{% endif %}>
+                                                <label class="form-check-label" for="rating-{{ choice.0 }}">{{ choice.0 }}</label>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ review_form.title.id_for_label }}" class="form-label">Review Title</label>
+                                    {{ review_form.title }}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ review_form.comment.id_for_label }}" class="form-label">Comment</label>
+                                    {{ review_form.comment }}
+                                </div>
+                                <button type="submit" class="btn btn-primary">Submit Review</button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info mt-4">
+                            <p class="mb-0">Please <a href="{% url 'login' %}?next={{ request.path }}">log in</a> to write a review.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Related Products Sidebar -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h3 class="h5 mb-0">Related Products</h3>
+                </div>
+                <div class="card-body">
+                    {% if related_products %}
+                        {% for related in related_products %}
+                            <div class="related-product d-flex mb-3">
+                                <a href="{% url 'product_detail' related.slug %}" class="flex-shrink-0">
+                                    <img src="{{ related.image_main.url }}" alt="{{ related.title }}" class="related-product-img">
+                                </a>
+                                <div class="ms-3">
+                                    <h6 class="mb-1">
+                                        <a href="{% url 'product_detail' related.slug %}" class="text-decoration-none text-dark">
+                                            {{ related.title }}
+                                        </a>
+                                    </h6>
+                                    <div class="ratings mb-1">
+                                        {% for i in "12345" %}
+                                            {% if forloop.counter <= related.rating|floatformat:"0" %}
+                                                <i class="fas fa-star text-warning small"></i>
+                                            {% else %}
+                                                <i class="far fa-star text-warning small"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <div class="price">
+                                        {% if related.sale_price %}
+                                            <span class="text-decoration-line-through text-muted small me-1">€{{ related.price }}</span>
+                                            <span class="text-danger fw-bold">€{{ related.sale_price }}</span>
+                                        {% else %}
+                                            <span class="fw-bold">€{{ related.price }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% if not forloop.last %}
+                                <hr class="my-3">
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No related products found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .main-product-image {
+        max-height: 400px;
+        object-fit: contain;
+        padding: 1rem;
+    }
+    
+    .thumbnail-item {
+        cursor: pointer;
+        opacity: 0.7;
+        transition: opacity 0.3s ease;
+    }
+    
+    .thumbnail-item.active, .thumbnail-item:hover {
+        opacity: 1;
+    }
+    
+    .thumbnail-item img {
+        width: 70px;
+        height: 70px;
+        object-fit: cover;
+    }
+    
+    .related-product-img {
+        width: 80px;
+        height: 80px;
+        object-fit: contain;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function changeImage(url) {
+        document.getElementById('mainProductImage').src = url;
+        
+        // Set active state on thumbnails
+        let thumbnails = document.querySelectorAll('.thumbnail-item');
+        thumbnails.forEach(item => {
+            if (item.querySelector('img').src === url) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    }
+    
+    // Template filter to calculate savings
+    function sub(value1, value2) {
+        return value1 - value2;
+    }
+</script>
+{% endblock %}

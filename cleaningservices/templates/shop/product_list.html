@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+
+{% block title %}Shop Products - CleanConnect{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <!-- Sidebar Filters -->
+        <div class="col-lg-3 mb-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h3 class="h5 mb-0">Filter Products</h3>
+                </div>
+                <div class="card-body">
+                    <form method="get" action="{% url 'product_list' %}">
+                        <!-- Search -->
+                        <div class="mb-3">
+                            <label for="{{ search_form.query.id_for_label }}" class="form-label">Search</label>
+                            {{ search_form.query }}
+                        </div>
+                        
+                        <!-- Price Range -->
+                        <div class="mb-3">
+                            <label class="form-label">Price Range</label>
+                            <div class="row g-2">
+                                <div class="col">
+                                    {{ search_form.min_price }}
+                                </div>
+                                <div class="col">
+                                    {{ search_form.max_price }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Categories -->
+                        <div class="mb-3">
+                            <label class="form-label">Categories</label>
+                            <div class="list-group">
+                                {% for category in categories %}
+                                    <a href="{% url 'product_category' category.slug %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if search_form.category.value == category.slug %}active{% endif %}">
+                                        {{ category.name }}
+                                        <span class="badge bg-primary rounded-pill">{{ category.products.count }}</span>
+                                    </a>
+                                    {% for subcategory in category.children.all %}
+                                        <a href="{% url 'product_category' subcategory.slug %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center ps-4 {% if search_form.category.value == subcategory.slug %}active{% endif %}">
+                                            {{ subcategory.name }}
+                                            <span class="badge bg-primary rounded-pill">{{ subcategory.products.count }}</span>
+                                        </a>
+                                    {% endfor %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Sort By -->
+                        <div class="mb-3">
+                            <label for="{{ search_form.sort.id_for_label }}" class="form-label">Sort By</label>
+                            {{ search_form.sort }}
+                        </div>
+                        
+                        <!-- Hidden category field for form submission -->
+                        {{ search_form.category }}
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Apply Filters</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card bg-light border-0">
+                <div class="card-body">
+                    <h5>Affiliate Disclosure</h5>
+                    <p class="small mb-0">
+                        As an Amazon Associate, we earn from qualifying purchases. When you click on links to Amazon and make 
+                        a purchase, we will receive a small commission at no extra cost to you.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Product Listings -->
+        <div class="col-lg-9">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Cleaning Products</h1>
+                <div class="product-count">
+                    <span class="badge bg-primary">{{ page_obj.paginator.count }} Products</span>
+                </div>
+            </div>
+            
+            {% if products %}
+                <div class="row">
+                    {% for product in products %}
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100 shadow-sm product-card">
+                                {% if product.sale_price %}
+                                    <div class="ribbon ribbon-top-right"><span>SALE</span></div>
+                                {% endif %}
+                                <a href="{% url 'product_detail' product.slug %}">
+                                    <img src="{{ product.image_main.url }}" alt="{{ product.title }}" class="card-img-top product-img">
+                                </a>
+                                <div class="card-body">
+                                    <h5 class="card-title product-title">
+                                        <a href="{% url 'product_detail' product.slug %}" class="text-decoration-none text-dark">
+                                            {{ product.title }}
+                                        </a>
+                                    </h5>
+                                    <p class="card-text small text-muted">{{ product.category.name }}</p>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            {% if product.sale_price %}
+                                                <span class="text-decoration-line-through text-muted me-2">€{{ product.price }}</span>
+                                                <span class="text-danger fw-bold">€{{ product.sale_price }}</span>
+                                            {% else %}
+                                                <span class="fw-bold">€{{ product.price }}</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="ratings">
+                                            {% for i in "12345" %}
+                                                {% if forloop.counter <= product.rating|floatformat:"0" %}
+                                                    <i class="fas fa-star text-warning"></i>
+                                                {% else %}
+                                                    <i class="far fa-star text-warning"></i>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <form action="{% url 'affiliate_redirect' %}" method="post" class="d-grid">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="product_id" value="{{ product.id }}">
+                                        <input type="hidden" name="redirect_url" value="{{ product.affiliate_url }}">
+                                        <button type="submit" class="btn btn-primary">View on Amazon</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Pagination -->
+                {% if is_paginated %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% url_replace request 'page' 1 %}" aria-label="First">
+                                        <span aria-hidden="true">&laquo;&laquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% url_replace request 'page' page_obj.previous_page_number %}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for i in paginator.page_range %}
+                                {% if page_obj.number == i %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ i }}</span>
+                                    </li>
+                                {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% url_replace request 'page' i %}">{{ i }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% url_replace request 'page' page_obj.next_page_number %}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% url_replace request 'page' paginator.num_pages %}" aria-label="Last">
+                                        <span aria-hidden="true">&raquo;&raquo;</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                {% endif %}
+            {% else %}
+                <div class="alert alert-info">
+                    <p class="mb-0">No products found matching your criteria. Please try a different search or filter.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .product-img {
+        height: 200px;
+        object-fit: contain;
+        padding: 1rem;
+    }
+    
+    .product-title {
+        height: 48px;
+        overflow: hidden;
+    }
+    
+    .ribbon {
+        width: 150px;
+        height: 150px;
+        overflow: hidden;
+        position: absolute;
+    }
+    
+    .ribbon span {
+        position: absolute;
+        display: block;
+        width: 225px;
+        padding: 5px 0;
+        background-color: #ff5630;
+        box-shadow: 0 5px 10px rgba(0,0,0,.1);
+        color: #fff;
+        font-size: 12px;
+        text-transform: uppercase;
+        text-align: center;
+        font-weight: bold;
+    }
+    
+    .ribbon-top-right {
+        top: -10px;
+        right: -10px;
+    }
+    
+    .ribbon-top-right span {
+        left: -25px;
+        top: 30px;
+        transform: rotate(45deg);
+    }
+    
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        transition: all 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Custom template tag to replace URL parameters
+    function url_replace(request, field, value) {
+        const params = new URLSearchParams(window.location.search);
+        params.set(field, value);
+        return params.toString();
+    }
+</script>
+{% endblock %}

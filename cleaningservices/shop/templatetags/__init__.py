@@ -1,0 +1,1 @@
+# Shop templatetags package

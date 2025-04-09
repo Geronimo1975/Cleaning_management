@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if form.instance.id %}Edit{% else %}Create{% endif %} Time Entry
+{% endblock %}
+
+{% block extra_head %}
+<style>
+    #map {
+        height: 300px;
+        width: 100%;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        display: none;
+    }
+    .location-picker {
+        margin-top: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h3 class="card-title mb-0">
+                        {% if form.instance.id %}Edit{% else %}Create{% endif %} Time Entry
+                    </h3>
+                    <div>
+                        <a href="{% url 'timetracking:entry_list' %}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Time Entries
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if selected_cleaner %}
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Creating time entry for: <strong>{{ selected_cleaner.user.get_full_name }}</strong>
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post" id="time-entry-form">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.date.id_for_label }}" class="form-label">Date</label>
+                                {{ form.date }}
+                                {% if form.date.errors %}
+                                <div class="text-danger small">{{ form.date.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <label for="{{ form.clock_in_time_input.id_for_label }}" class="form-label">Clock In Time</label>
+                                {{ form.clock_in_time_input }}
+                                {% if form.clock_in_time_input.errors %}
+                                <div class="text-danger small">{{ form.clock_in_time_input.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <label for="{{ form.clock_out_time_input.id_for_label }}" class="form-label">Clock Out Time</label>
+                                {{ form.clock_out_time_input }}
+                                {% if form.clock_out_time_input.errors %}
+                                <div class="text-danger small">{{ form.clock_out_time_input.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.job_request.id_for_label }}" class="form-label">Job Request</label>
+                                {{ form.job_request }}
+                                {% if form.job_request.errors %}
+                                <div class="text-danger small">{{ form.job_request.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.job_assignment.id_for_label }}" class="form-label">Job Assignment</label>
+                                {{ form.job_assignment }}
+                                {% if form.job_assignment.errors %}
+                                <div class="text-danger small">{{ form.job_assignment.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.break_duration_minutes.id_for_label }}" class="form-label">Break Duration (minutes)</label>
+                                {{ form.break_duration_minutes }}
+                                {% if form.break_duration_minutes.errors %}
+                                <div class="text-danger small">{{ form.break_duration_minutes.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.clock_in_location_address.id_for_label }}" class="form-label">Clock In Location</label>
+                                {{ form.clock_in_location_address }}
+                                {% if form.clock_in_location_address.errors %}
+                                <div class="text-danger small">{{ form.clock_in_location_address.errors }}</div>
+                                {% endif %}
+                                <div class="location-picker">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="pick-in-location">
+                                        <i class="fas fa-map-marker-alt me-1"></i> Pick on Map
+                                    </button>
+                                </div>
+                                {{ form.clock_in_location_lat }}
+                                {{ form.clock_in_location_lng }}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.clock_out_location_address.id_for_label }}" class="form-label">Clock Out Location</label>
+                                {{ form.clock_out_location_address }}
+                                {% if form.clock_out_location_address.errors %}
+                                <div class="text-danger small">{{ form.clock_out_location_address.errors }}</div>
+                                {% endif %}
+                                <div class="location-picker">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="pick-out-location">
+                                        <i class="fas fa-map-marker-alt me-1"></i> Pick on Map
+                                    </button>
+                                </div>
+                                {{ form.clock_out_location_lat }}
+                                {{ form.clock_out_location_lng }}
+                            </div>
+                        </div>
+                        
+                        <div id="map"></div>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                                {{ form.notes }}
+                                {% if form.notes.errors %}
+                                <div class="text-danger small">{{ form.notes.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        {{ form.is_manual_entry }}
+                        
+                        <div class="row mt-4">
+                            <div class="col-md-12 text-center">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>
+                                    {% if form.instance.id %}Update{% else %}Create{% endif %} Time Entry
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBVWaKrjvy3MaE7SQ74_uJiULgl1JY0H2s&libraries=places"></script>
+<script>
+    let map;
+    let marker;
+    let locationMode = null; // 'in' or 'out' or null
+    
+    // Initialize the map
+    function initMap() {
+        // Default location is Berlin
+        const defaultLocation = {
+            lat: 52.5200, 
+            lng: 13.4050
+        };
+        
+        map = new google.maps.Map(document.getElementById("map"), {
+            center: defaultLocation,
+            zoom: 12,
+        });
+        
+        marker = new google.maps.Marker({
+            position: defaultLocation,
+            map: map,
+            draggable: true,
+            animation: google.maps.Animation.DROP
+        });
+        
+        // Add listener for marker drag end
+        google.maps.event.addListener(marker, 'dragend', function() {
+            const position = marker.getPosition();
+            updateAddressFromPosition(position);
+        });
+        
+        // Add listener for map click
+        google.maps.event.addListener(map, 'click', function(event) {
+            marker.setPosition(event.latLng);
+            updateAddressFromPosition(event.latLng);
+        });
+    }
+    
+    // Update the address input field based on the marker position
+    function updateAddressFromPosition(position) {
+        const lat = position.lat();
+        const lng = position.lng();
+        
+        if (locationMode === 'in') {
+            document.getElementById('id_clock_in_location_lat').value = lat;
+            document.getElementById('id_clock_in_location_lng').value = lng;
+        } else if (locationMode === 'out') {
+            document.getElementById('id_clock_out_location_lat').value = lat;
+            document.getElementById('id_clock_out_location_lng').value = lng;
+        }
+        
+        // Reverse geocoding to get address
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: {lat: lat, lng: lng} }, (results, status) => {
+            if (status === "OK" && results[0]) {
+                const address = results[0].formatted_address;
+                if (locationMode === 'in') {
+                    document.getElementById('id_clock_in_location_address').value = address;
+                } else if (locationMode === 'out') {
+                    document.getElementById('id_clock_out_location_address').value = address;
+                }
+            }
+        });
+    }
+    
+    // Set marker position from address
+    function setLocationFromAddress(address, mode) {
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ address: address }, (results, status) => {
+            if (status === "OK" && results[0]) {
+                const location = results[0].geometry.location;
+                map.setCenter(location);
+                marker.setPosition(location);
+                
+                if (mode === 'in') {
+                    document.getElementById('id_clock_in_location_lat').value = location.lat();
+                    document.getElementById('id_clock_in_location_lng').value = location.lng();
+                } else if (mode === 'out') {
+                    document.getElementById('id_clock_out_location_lat').value = location.lat();
+                    document.getElementById('id_clock_out_location_lng').value = location.lng();
+                }
+            }
+        });
+    }
+    
+    // Initialization when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        initMap();
+        
+        // Handle click on pick location buttons
+        document.getElementById('pick-in-location').addEventListener('click', function() {
+            locationMode = 'in';
+            document.getElementById('map').style.display = 'block';
+            
+            // If address already exists, center map there
+            const address = document.getElementById('id_clock_in_location_address').value;
+            if (address) {
+                setLocationFromAddress(address, 'in');
+            }
+        });
+        
+        document.getElementById('pick-out-location').addEventListener('click', function() {
+            locationMode = 'out';
+            document.getElementById('map').style.display = 'block';
+            
+            // If address already exists, center map there
+            const address = document.getElementById('id_clock_out_location_address').value;
+            if (address) {
+                setLocationFromAddress(address, 'out');
+            }
+        });
+        
+        // Listen for address input changes
+        document.getElementById('id_clock_in_location_address').addEventListener('blur', function() {
+            const address = this.value;
+            if (address) {
+                setLocationFromAddress(address, 'in');
+            }
+        });
+        
+        document.getElementById('id_clock_out_location_address').addEventListener('blur', function() {
+            const address = this.value;
+            if (address) {
+                setLocationFromAddress(address, 'out');
+            }
+        });
+    });
+</script>
+{% endblock %}

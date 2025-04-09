@@ -3,28 +3,52 @@
 
 {% block title %}Time Tracking{% endblock %}
 
+{% block extra_head %}
+<style>
+    .timer {
+        font-size: 2rem;
+        font-weight: bold;
+        text-align: center;
+        margin: 15px 0;
+    }
+    .status-badge {
+        font-size: 1rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid py-4">
     <div class="row mb-4">
         <div class="col-12">
             <h1 class="h3 mb-3">Time Tracking</h1>
             
-            <div class="btn-group mb-3">
-                <a href="{% url 'timetracking:clock_in' %}" class="btn btn-success">
-                    <i class="fas fa-play me-2"></i>Clock In
-                </a>
-                <a href="{% url 'timetracking:clock_out' %}" class="btn btn-danger">
-                    <i class="fas fa-stop me-2"></i>Clock Out
-                </a>
-                <a href="{% url 'timetracking:break_start' %}" class="btn btn-warning text-dark">
-                    <i class="fas fa-coffee me-2"></i>Start Break
-                </a>
-                <a href="{% url 'timetracking:break_end' %}" class="btn btn-info">
-                    <i class="fas fa-check me-2"></i>End Break
-                </a>
-            </div>
+            {% if is_cleaner %}
+                {% if active_entry %}
+                <div class="btn-group mb-3">
+                    <a href="{% url 'timetracking:clock_out' %}" class="btn btn-danger">
+                        <i class="fas fa-stop me-2"></i>Clock Out
+                    </a>
+                    {% if active_entry.is_on_break %}
+                    <a href="{% url 'timetracking:break_end' %}" class="btn btn-info">
+                        <i class="fas fa-check me-2"></i>End Break
+                    </a>
+                    {% else %}
+                    <a href="{% url 'timetracking:break_start' %}" class="btn btn-warning text-dark">
+                        <i class="fas fa-coffee me-2"></i>Start Break
+                    </a>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="btn-group mb-3">
+                    <a href="{% url 'timetracking:clock_in' %}" class="btn btn-success">
+                        <i class="fas fa-play me-2"></i>Clock In
+                    </a>
+                </div>
+                {% endif %}
+            {% endif %}
             
-            <div class="btn-group ms-md-2 mb-3">
+            <div class="btn-group {% if is_cleaner %}ms-md-2{% endif %} mb-3">
                 <a href="{% url 'timetracking:create_entry' %}" class="btn btn-outline-primary">
                     <i class="fas fa-plus me-2"></i>Add Time Entry
                 </a>
@@ -44,45 +68,80 @@
             <h5 class="card-title mb-0">Current Status</h5>
         </div>
         <div class="card-body">
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
-                This is a placeholder for the time tracking status view. The actual time tracking functionality will be implemented soon.
-            </div>
-            
-            <div class="row text-center">
-                <div class="col-md-3 mb-3">
-                    <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-body">
-                            <h6 class="text-muted">Current Status</h6>
-                            <h4 class="mt-2"><span class="badge bg-secondary">Not Clocked In</span></h4>
+            {% if is_cleaner %}
+                <div class="row text-center">
+                    <div class="col-md-3 mb-3">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body">
+                                <h6 class="text-muted">Current Status</h6>
+                                {% if active_entry %}
+                                    {% if active_entry.is_on_break %}
+                                    <h4 class="mt-2"><span class="badge bg-warning text-dark status-badge">On Break</span></h4>
+                                    {% else %}
+                                    <h4 class="mt-2"><span class="badge bg-success status-badge">Clocked In</span></h4>
+                                    {% endif %}
+                                    <div class="small text-muted">Since {{ active_entry.clock_in_time|date:"H:i" }}</div>
+                                    {% if active_entry.is_on_break %}
+                                    <div class="small text-muted">Break started at {{ active_entry.break_start_time|date:"H:i" }}</div>
+                                    {% endif %}
+                                {% else %}
+                                    <h4 class="mt-2"><span class="badge bg-secondary status-badge">Not Clocked In</span></h4>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body">
+                                <h6 class="text-muted">Today's Hours</h6>
+                                <h4 class="mt-2">{{ today_hours|floatformat:2 }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body">
+                                <h6 class="text-muted">This Week</h6>
+                                <h4 class="mt-2">{{ week_hours|floatformat:2 }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body">
+                                <h6 class="text-muted">This Month</h6>
+                                <h4 class="mt-2">{{ month_hours|floatformat:2 }}</h4>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 mb-3">
-                    <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-body">
-                            <h6 class="text-muted">Today's Hours</h6>
-                            <h4 class="mt-2">0:00</h4>
+                
+                {% if active_entry %}
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="bg-light p-3 rounded text-center">
+                            <h6 class="mb-2">Current Session Duration</h6>
+                            <div class="timer" id="duration-timer">00:00:00</div>
+                            <p class="small text-muted">
+                                Started at {{ active_entry.clock_in_time|date:"F j, Y - H:i" }}
+                                {% if active_entry.clock_in_location_address %}
+                                <br>Location: {{ active_entry.clock_in_location_address }}
+                                {% endif %}
+                            </p>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 mb-3">
-                    <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-body">
-                            <h6 class="text-muted">This Week</h6>
-                            <h4 class="mt-2">0:00</h4>
-                        </div>
-                    </div>
+                {% endif %}
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    {% if is_company %}
+                        You can view the active time entries of your cleaners below.
+                    {% else %}
+                        You can view all time entries and create manual entries below.
+                    {% endif %}
                 </div>
-                <div class="col-md-3 mb-3">
-                    <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-body">
-                            <h6 class="text-muted">This Month</h6>
-                            <h4 class="mt-2">0:00</h4>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {% endif %}
         </div>
     </div>
     
@@ -91,8 +150,13 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">Recent Time Entries</h5>
             <div>
+                {% if is_company or is_admin %}
+                <a href="{% url 'timetracking:select_cleaner' %}" class="btn btn-sm btn-outline-primary me-1">
+                    <i class="fas fa-plus me-1"></i> Add Entry for Cleaner
+                </a>
+                {% endif %}
                 <a href="#" class="btn btn-sm btn-outline-secondary">
-                    <i class="fas fa-calendar me-1"></i> Filter
+                    <i class="fas fa-filter me-1"></i> Filter
                 </a>
                 <a href="#" class="btn btn-sm btn-outline-secondary ms-1">
                     <i class="fas fa-download me-1"></i> Export
@@ -104,23 +168,170 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
+                            {% if is_company or is_admin %}
+                            <th>Cleaner</th>
+                            {% endif %}
                             <th>Date</th>
-                            <th>Start Time</th>
-                            <th>End Time</th>
+                            <th>Clock In</th>
+                            <th>Clock Out</th>
                             <th>Duration</th>
-                            <th>Project</th>
+                            <th>Break</th>
+                            <th>Job</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td colspan="7" class="text-center">No time entries available yet.</td>
-                        </tr>
+                        {% if entries %}
+                            {% for entry in entries %}
+                            <tr>
+                                {% if is_company or is_admin %}
+                                <td>{{ entry.cleaner.user.get_full_name }}</td>
+                                {% endif %}
+                                <td>{{ entry.clock_in_time|date:"M d, Y" }}</td>
+                                <td>{{ entry.clock_in_time|date:"H:i" }}</td>
+                                <td>
+                                    {% if entry.clock_out_time %}
+                                        {{ entry.clock_out_time|date:"H:i" }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if entry.clock_out_time %}
+                                        {{ entry.total_duration_hours|floatformat:2 }} hrs
+                                    {% else %}
+                                        <span class="text-muted">Active</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ entry.break_duration_minutes }} min</td>
+                                <td>
+                                    {% if entry.job_assignment %}
+                                        {{ entry.job_assignment }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if entry.is_verified %}
+                                        <span class="badge bg-success">Verified</span>
+                                    {% elif entry.is_active %}
+                                        {% if entry.is_on_break %}
+                                            <span class="badge bg-warning text-dark">On Break</span>
+                                        {% else %}
+                                            <span class="badge bg-primary">Active</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary">Completed</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'timetracking:entry_detail' entry.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if not entry.is_verified %}
+                                    <a href="{% url 'timetracking:edit_entry' entry.id %}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="{% if is_company or is_admin %}9{% else %}8{% endif %}" class="text-center">No time entries available yet.</td>
+                            </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
+            
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mt-4">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo;</span>
+                    </li>
+                    {% endif %}
+                    
+                    {% for i in page_obj.paginator.page_range %}
+                        {% if page_obj.number == i %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ i }}</span>
+                        </li>
+                        {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&raquo;</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if active_entry %}
+<script>
+    // Update the timer display
+    function updateTimer() {
+        const clockInTime = new Date("{{ active_entry.clock_in_time|date:'c' }}");
+        const now = new Date();
+        let diff = Math.floor((now - clockInTime) / 1000); // difference in seconds
+        
+        // Subtract break duration if any
+        const breakDurationMinutes = {{ active_entry.break_duration_minutes|default:"0" }};
+        diff -= breakDurationMinutes * 60;
+        
+        // If on break, don't count current break time
+        {% if active_entry.is_on_break %}
+        const breakStartTime = new Date("{{ active_entry.break_start_time|date:'c' }}");
+        const breakDiff = Math.floor((now - breakStartTime) / 1000);
+        diff -= breakDiff;
+        {% endif %}
+        
+        // Format the time
+        const hours = Math.floor(diff / 3600);
+        diff %= 3600;
+        const minutes = Math.floor(diff / 60);
+        const seconds = diff % 60;
+        
+        const timerDisplay = 
+            String(hours).padStart(2, '0') + ':' + 
+            String(minutes).padStart(2, '0') + ':' + 
+            String(seconds).padStart(2, '0');
+        
+        document.getElementById('duration-timer').textContent = timerDisplay;
+    }
+    
+    // Update timer every second
+    document.addEventListener('DOMContentLoaded', function() {
+        updateTimer();
+        setInterval(updateTimer, 1000);
+    });
+</script>
+{% endif %}
 {% endblock %}

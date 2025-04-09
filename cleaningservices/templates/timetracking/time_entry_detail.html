@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Time Entry Details{% endblock %}
+
+{% block extra_head %}
+<style>
+    #map {
+        height: 300px;
+        width: 100%;
+        margin-bottom: 20px;
+        border-radius: 8px;
+    }
+    .entry-detail {
+        margin-bottom: 20px;
+    }
+    .entry-detail .label {
+        font-weight: 600;
+        color: #555;
+    }
+    .status-badge {
+        font-size: 0.9rem;
+        padding: 0.25rem 0.5rem;
+    }
+    .time-badge {
+        font-size: 1.2rem;
+        padding: 0.5rem 1rem;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h3 class="card-title mb-0">Time Entry Details</h3>
+                    <div>
+                        <a href="{% url 'timetracking:entry_list' %}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Time Entries
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <span class="badge bg-{% if entry.is_verified %}success{% elif entry.is_active %}primary{% else %}secondary{% endif %} status-badge mb-2">
+                            {% if entry.is_verified %}
+                                <i class="fas fa-check-circle me-1"></i> Verified
+                            {% elif entry.is_active %}
+                                <i class="fas fa-clock me-1"></i> Active
+                            {% else %}
+                                <i class="fas fa-check me-1"></i> Completed
+                            {% endif %}
+                        </span>
+                        
+                        <h4 class="mb-3">Time Entry for {{ entry.cleaner.user.get_full_name }}</h4>
+                        
+                        <div class="badge bg-dark text-white time-badge">
+                            {{ entry.total_duration_hours|floatformat:2 }} hours
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="entry-detail">
+                                <div class="label">Clock In Time:</div>
+                                <div>{{ entry.clock_in_time|date:"F j, Y - H:i" }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="entry-detail">
+                                <div class="label">Clock Out Time:</div>
+                                <div>
+                                    {% if entry.clock_out_time %}
+                                        {{ entry.clock_out_time|date:"F j, Y - H:i" }}
+                                    {% else %}
+                                        <span class="text-muted">Not clocked out yet</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="entry-detail">
+                                <div class="label">Job Request:</div>
+                                <div>
+                                    {% if entry.job_request %}
+                                        {{ entry.job_request }}
+                                    {% else %}
+                                        <span class="text-muted">No job request associated</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="entry-detail">
+                                <div class="label">Job Assignment:</div>
+                                <div>
+                                    {% if entry.job_assignment %}
+                                        {{ entry.job_assignment }}
+                                    {% else %}
+                                        <span class="text-muted">No job assignment associated</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="entry-detail">
+                                <div class="label">Break Duration:</div>
+                                <div>{{ entry.break_duration_minutes }} minutes</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="entry-detail">
+                                <div class="label">Status:</div>
+                                <div>
+                                    {% if entry.is_active %}
+                                        {% if entry.is_on_break %}
+                                            <span class="badge bg-warning text-dark">On Break</span>
+                                        {% else %}
+                                            <span class="badge bg-primary">Active (Clocked In)</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary">Completed</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if entry.is_verified %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="entry-detail">
+                                <div class="label">Verified By:</div>
+                                <div>{{ entry.verified_by.get_full_name }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="entry-detail">
+                                <div class="label">Verification Date:</div>
+                                <div>{{ entry.verification_date|date:"F j, Y - H:i" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if entry.notes %}
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="entry-detail">
+                                <div class="label">Notes:</div>
+                                <div>{{ entry.notes }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <h5 class="mb-3">Location Data</h5>
+                    
+                    <div id="map"></div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="entry-detail">
+                                <div class="label">Clock In Location:</div>
+                                <div id="clock-in-address">
+                                    {% if entry.clock_in_location_address %}
+                                        {{ entry.clock_in_location_address }}
+                                    {% else %}
+                                        <span class="text-muted">No location data available</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="entry-detail">
+                                <div class="label">Clock Out Location:</div>
+                                <div id="clock-out-address">
+                                    {% if entry.clock_out_location_address %}
+                                        {{ entry.clock_out_location_address }}
+                                    {% else %}
+                                        <span class="text-muted">No location data available</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12 text-center">
+                            {% if can_edit and not entry.is_verified %}
+                            <a href="{% url 'timetracking:edit_entry' entry.id %}" class="btn btn-primary me-2">
+                                <i class="fas fa-edit me-1"></i> Edit
+                            </a>
+                            {% endif %}
+                            
+                            {% if can_delete and not entry.is_verified %}
+                            <a href="{% url 'timetracking:delete_entry' entry.id %}" class="btn btn-danger me-2">
+                                <i class="fas fa-trash-alt me-1"></i> Delete
+                            </a>
+                            {% endif %}
+                            
+                            {% if can_verify and not entry.is_verified and not entry.is_active %}
+                            <a href="{% url 'timetracking:verify_entry' entry.id %}" class="btn btn-success">
+                                <i class="fas fa-check-circle me-1"></i> Verify Entry
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBVWaKrjvy3MaE7SQ74_uJiULgl1JY0H2s&libraries=places"></script>
+<script>
+    let map;
+    let clockInMarker;
+    let clockOutMarker;
+    
+    // Initialize the map with markers for clock in and clock out locations
+    function initMap() {
+        // Get location data from entry
+        const clockInLat = {% if entry.clock_in_location_lat %}{{ entry.clock_in_location_lat }}{% else %}null{% endif %};
+        const clockInLng = {% if entry.clock_in_location_lng %}{{ entry.clock_in_location_lng }}{% else %}null{% endif %};
+        const clockOutLat = {% if entry.clock_out_location_lat %}{{ entry.clock_out_location_lat }}{% else %}null{% endif %};
+        const clockOutLng = {% if entry.clock_out_location_lng %}{{ entry.clock_out_location_lng }}{% else %}null{% endif %};
+        
+        // Determine center of map
+        let center;
+        if (clockInLat && clockInLng) {
+            center = { lat: clockInLat, lng: clockInLng };
+        } else if (clockOutLat && clockOutLng) {
+            center = { lat: clockOutLat, lng: clockOutLng };
+        } else {
+            // Default to Berlin if no coordinates
+            center = { lat: 52.5200, lng: 13.4050 };
+        }
+        
+        // Create map
+        map = new google.maps.Map(document.getElementById("map"), {
+            center: center,
+            zoom: 14,
+        });
+        
+        // Add markers if coordinates exist
+        if (clockInLat && clockInLng) {
+            clockInMarker = new google.maps.Marker({
+                position: { lat: clockInLat, lng: clockInLng },
+                map: map,
+                title: "Clock In Location",
+                icon: {
+                    url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
+                }
+            });
+            
+            // Add info window
+            const infoWindow = new google.maps.InfoWindow({
+                content: `<div>Clock In: ${document.getElementById('clock-in-address').innerText}</div>`
+            });
+            
+            clockInMarker.addListener("click", () => {
+                infoWindow.open(map, clockInMarker);
+            });
+        }
+        
+        if (clockOutLat && clockOutLng) {
+            clockOutMarker = new google.maps.Marker({
+                position: { lat: clockOutLat, lng: clockOutLng },
+                map: map,
+                title: "Clock Out Location",
+                icon: {
+                    url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
+                }
+            });
+            
+            // Add info window
+            const infoWindow = new google.maps.InfoWindow({
+                content: `<div>Clock Out: ${document.getElementById('clock-out-address').innerText}</div>`
+            });
+            
+            clockOutMarker.addListener("click", () => {
+                infoWindow.open(map, clockOutMarker);
+            });
+        }
+        
+        // If both markers exist, fit bounds to show both
+        if (clockInMarker && clockOutMarker) {
+            const bounds = new google.maps.LatLngBounds();
+            bounds.extend(clockInMarker.getPosition());
+            bounds.extend(clockOutMarker.getPosition());
+            map.fitBounds(bounds);
+        }
+    }
+    
+    // Initialize map when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Only show map if we have location data
+        const hasLocationData = 
+            {% if entry.clock_in_location_lat or entry.clock_out_location_lat %}true{% else %}false{% endif %};
+        
+        if (hasLocationData) {
+            initMap();
+        } else {
+            document.getElementById('map').style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

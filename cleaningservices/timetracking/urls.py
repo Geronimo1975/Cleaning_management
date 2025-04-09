@@ -8,9 +8,11 @@ urlpatterns = [
     path('', views.time_entry_list_view, name='list'),
     path('entries/', views.time_entry_list_view, name='entry_list'),
     path('entries/create/', views.create_time_entry_view, name='create_entry'),
+    path('entries/select-cleaner/', views.select_cleaner_view, name='select_cleaner'),
     path('entries/<int:entry_id>/', views.time_entry_detail_view, name='entry_detail'),
     path('entries/<int:entry_id>/edit/', views.edit_time_entry_view, name='edit_entry'),
     path('entries/<int:entry_id>/delete/', views.delete_time_entry_view, name='delete_entry'),
+    path('entries/<int:entry_id>/verify/', views.verify_time_entry_view, name='verify_entry'),
     
     # Time clock operations
     path('clock-in/', views.clock_in_view, name='clock_in'),
@@ -21,6 +23,7 @@ urlpatterns = [
     # Timesheet management
     path('timesheets/', views.timesheet_list_view, name='timesheet_list'),
     path('timesheets/create/', views.create_timesheet_view, name='create_timesheet'),
+    path('timesheets/select-cleaner/', views.select_cleaner_timesheet_view, name='select_cleaner_timesheet'),
     path('timesheets/<int:timesheet_id>/', views.timesheet_detail_view, name='timesheet_detail'),
     path('timesheets/<int:timesheet_id>/edit/', views.edit_timesheet_view, name='edit_timesheet'),
     path('timesheets/<int:timesheet_id>/delete/', views.delete_timesheet_view, name='delete_timesheet'),
@@ -32,12 +35,17 @@ urlpatterns = [
     # Work schedule management
     path('schedules/', views.work_schedule_list_view, name='schedule_list'),
     path('schedules/create/', views.create_work_schedule_view, name='create_schedule'),
+    path('schedules/select-cleaner/', views.select_cleaner_schedule_view, name='select_cleaner_schedule'),
     path('schedules/<int:schedule_id>/', views.work_schedule_detail_view, name='schedule_detail'),
     path('schedules/<int:schedule_id>/edit/', views.edit_work_schedule_view, name='edit_schedule'),
     path('schedules/<int:schedule_id>/delete/', views.delete_work_schedule_view, name='delete_schedule'),
     path('schedules/<int:schedule_id>/approve/', views.approve_work_schedule_view, name='approve_schedule'),
+    path('schedules/<int:schedule_id>/workdays/add/', views.add_workday_view, name='add_workday'),
+    path('schedules/<int:schedule_id>/workdays/<int:workday_id>/edit/', views.edit_workday_view, name='edit_workday'),
+    path('schedules/<int:schedule_id>/workdays/<int:workday_id>/delete/', views.delete_workday_view, name='delete_workday'),
     
     # API endpoints
     path('api/current-status/', views.get_current_status_view, name='get_current_status'),
     path('api/active-entries/', views.get_active_entries_view, name='get_active_entries'),
+    path('api/location/', views.get_location_view, name='get_location'),
 ]

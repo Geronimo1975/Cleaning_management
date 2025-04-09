@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Clock In{% endblock %}
+
+{% block extra_head %}
+<style>
+    #map {
+        height: 300px;
+        width: 100%;
+        margin-bottom: 20px;
+        border-radius: 8px;
+    }
+    .location-info {
+        margin-top: 15px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
+    .btn-clock {
+        padding: 15px 30px;
+        font-size: 1.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">Clock In</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        When you clock in, your current location will be recorded. Please make sure location services are enabled on your device.
+                    </div>
+                    
+                    <!-- Location display -->
+                    <div id="map"></div>
+                    
+                    <div class="location-info">
+                        <h5>Current Location:</h5>
+                        <p id="location-address">Detecting your location...</p>
+                        <div class="d-flex justify-content-between text-muted small">
+                            <span id="location-coords">Coordinates: --</span>
+                            <span id="location-accuracy">Accuracy: --</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Clock in form -->
+                    <form method="post" id="clock-in-form" class="mt-4">
+                        {% csrf_token %}
+                        <input type="hidden" name="latitude" id="latitude">
+                        <input type="hidden" name="longitude" id="longitude">
+                        <input type="hidden" name="address" id="address">
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-success btn-clock" id="submit-btn" disabled>
+                                <i class="fas fa-play me-2"></i> Clock In Now
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-3">
+                        <a href="{% url 'timetracking:list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i> Back to Time Tracking
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBVWaKrjvy3MaE7SQ74_uJiULgl1JY0H2s&libraries=places"></script>
+<script>
+    let map;
+    let marker;
+    let watchId;
+    
+    // Initialize the map
+    function initMap(position) {
+        const defaultLocation = {
+            lat: position ? position.coords.latitude : 52.5200, 
+            lng: position ? position.coords.longitude : 13.4050
+        };
+        
+        map = new google.maps.Map(document.getElementById("map"), {
+            center: defaultLocation,
+            zoom: 15,
+        });
+        
+        marker = new google.maps.Marker({
+            position: defaultLocation,
+            map: map,
+            animation: google.maps.Animation.DROP,
+            title: "Your location"
+        });
+        
+        // If we received a position, update everything
+        if (position) {
+            updateLocationDisplay(position);
+        }
+    }
+    
+    // Update location display with address and coordinates
+    function updateLocationDisplay(position) {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const accuracy = position.coords.accuracy;
+        
+        // Update the hidden fields
+        document.getElementById('latitude').value = lat;
+        document.getElementById('longitude').value = lng;
+        
+        // Update the displayed coordinates and accuracy
+        document.getElementById('location-coords').textContent = `Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        document.getElementById('location-accuracy').textContent = `Accuracy: ${accuracy.toFixed(1)} meters`;
+        
+        // Create a new position object for the marker
+        const pos = {
+            lat: lat,
+            lng: lng
+        };
+        
+        // Update marker and center map
+        marker.setPosition(pos);
+        map.setCenter(pos);
+        
+        // Get address from coordinates (reverse geocoding)
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: pos }, (results, status) => {
+            if (status === "OK" && results[0]) {
+                const address = results[0].formatted_address;
+                document.getElementById('location-address').textContent = address;
+                document.getElementById('address').value = address;
+                
+                // Enable the submit button only when we have an address
+                document.getElementById('submit-btn').disabled = false;
+            } else {
+                document.getElementById('location-address').textContent = "Address not found";
+                document.getElementById('address').value = "";
+            }
+        });
+    }
+    
+    // Handle location errors
+    function handleLocationError(error) {
+        let errorMessage;
+        
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+                errorMessage = "User denied the request for geolocation. Please enable location services and refresh the page.";
+                break;
+            case error.POSITION_UNAVAILABLE:
+                errorMessage = "Location information is unavailable.";
+                break;
+            case error.TIMEOUT:
+                errorMessage = "The request to get user location timed out.";
+                break;
+            case error.UNKNOWN_ERROR:
+                errorMessage = "An unknown error occurred.";
+                break;
+        }
+        
+        document.getElementById('location-address').textContent = errorMessage;
+        document.getElementById('location-address').classList.add('text-danger');
+        
+        // Initialize map with default location
+        initMap(null);
+    }
+    
+    // Start watching position to get high accuracy
+    function startWatchingPosition() {
+        if (navigator.geolocation) {
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            };
+            
+            watchId = navigator.geolocation.watchPosition(
+                updateLocationDisplay,
+                handleLocationError,
+                options
+            );
+            
+            // Get initial position for map initialization
+            navigator.geolocation.getCurrentPosition(
+                initMap,
+                handleLocationError,
+                options
+            );
+        } else {
+            document.getElementById('location-address').textContent = 
+                "Geolocation is not supported by this browser.";
+            initMap(null);
+        }
+    }
+    
+    // Stop watching position when leaving page
+    function stopWatchingPosition() {
+        if (watchId) {
+            navigator.geolocation.clearWatch(watchId);
+        }
+    }
+    
+    // Initialization when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        startWatchingPosition();
+        
+        // Stop watching when form is submitted
+        document.getElementById('clock-in-form').addEventListener('submit', function() {
+            stopWatchingPosition();
+        });
+    });
+    
+    // Cleanup when leaving the page
+    window.addEventListener('beforeunload', function() {
+        stopWatchingPosition();
+    });
+</script>
+{% endblock %}

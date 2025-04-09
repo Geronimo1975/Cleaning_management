@@ -1,0 +1,466 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        height: 400px;
+        position: relative;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h1 class="h3 mb-0">{{ title }}</h1>
+            
+            <div>
+                <a href="{% url 'analytics:reports_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Reports
+                </a>
+                
+                <div class="btn-group ms-2">
+                    <a href="{% url 'analytics:edit_report' report_id=report.id %}" class="btn btn-outline-primary">
+                        <i class="fas fa-edit me-2"></i>Edit Report
+                    </a>
+                    <a href="{% url 'analytics:generate_report_pdf' report_id=report.id %}" class="btn btn-outline-info">
+                        <i class="fas fa-file-pdf me-2"></i>Export to PDF
+                    </a>
+                    <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#scheduleModal">
+                        <i class="fas fa-clock me-2"></i>{% if report.is_scheduled %}Edit Schedule{% else %}Schedule Report{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#charts" data-bs-toggle="tab">Charts</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#data" data-bs-toggle="tab">Data</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="charts">
+                            {% if report.data %}
+                            <div class="chart-container mb-4">
+                                <canvas id="mainChart"></canvas>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-4">
+                                    <div class="chart-container">
+                                        <canvas id="secondaryChart1"></canvas>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-4">
+                                    <div class="chart-container">
+                                        <canvas id="secondaryChart2"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-chart-bar fa-3x mb-3 text-muted"></i>
+                                <h5>No Chart Data Available</h5>
+                                <p class="text-muted">This report doesn't have any chart data yet.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="tab-pane fade" id="data">
+                            {% if report.data %}
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <!-- Table headers will be generated dynamically -->
+                                        </tr>
+                                    </thead>
+                                    <tbody id="reportDataTable">
+                                        <!-- Table rows will be generated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-database fa-3x mb-3 text-muted"></i>
+                                <h5>No Data Available</h5>
+                                <p class="text-muted">This report doesn't have any data yet.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Report Details</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Report Type</dt>
+                        <dd class="col-sm-8">
+                            {% for value, label in report.REPORT_TYPES %}
+                            {% if value == report.report_type %}
+                            {{ label }}
+                            {% endif %}
+                            {% endfor %}
+                        </dd>
+                        
+                        <dt class="col-sm-4">Period</dt>
+                        <dd class="col-sm-8">
+                            {% for value, label in report.PERIOD_CHOICES %}
+                            {% if value == report.period %}
+                            {{ label }}
+                            {% endif %}
+                            {% endfor %}
+                        </dd>
+                        
+                        <dt class="col-sm-4">Date Range</dt>
+                        <dd class="col-sm-8">{{ report.start_date|date:"M d, Y" }} - {{ report.end_date|date:"M d, Y" }}</dd>
+                        
+                        <dt class="col-sm-4">Created</dt>
+                        <dd class="col-sm-8">{{ report.created_at|date:"M d, Y, g:i a" }}</dd>
+                        
+                        <dt class="col-sm-4">Last Updated</dt>
+                        <dd class="col-sm-8">{{ report.updated_at|date:"M d, Y, g:i a" }}</dd>
+                        
+                        {% if report.company %}
+                        <dt class="col-sm-4">Company</dt>
+                        <dd class="col-sm-8">{{ report.company.company_name }}</dd>
+                        {% endif %}
+                        
+                        {% if report.cleaner %}
+                        <dt class="col-sm-4">Cleaner</dt>
+                        <dd class="col-sm-8">{{ report.cleaner.user.get_full_name }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+            
+            {% if report.is_scheduled %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">Scheduled Report</h5>
+                </div>
+                <div class="card-body">
+                    <p><i class="fas fa-check-circle me-2 text-success"></i> This report is scheduled to run automatically.</p>
+                    
+                    <dl class="row">
+                        <dt class="col-sm-4">Frequency</dt>
+                        <dd class="col-sm-8">{{ report.schedule_frequency|title }}</dd>
+                        
+                        {% if report.last_run %}
+                        <dt class="col-sm-4">Last Run</dt>
+                        <dd class="col-sm-8">{{ report.last_run|date:"M d, Y, g:i a" }}</dd>
+                        {% endif %}
+                        
+                        {% if report.next_run %}
+                        <dt class="col-sm-4">Next Run</dt>
+                        <dd class="col-sm-8">{{ report.next_run|date:"M d, Y, g:i a" }}</dd>
+                        {% endif %}
+                    </dl>
+                    
+                    <form method="post" action="{% url 'analytics:schedule_report' report_id=report.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="fas fa-ban me-2"></i>Disable Scheduling
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'analytics:delete_report' report_id=report.id %}" id="deleteForm" class="d-inline">
+                        {% csrf_token %}
+                        <button type="button" class="btn btn-outline-danger" onclick="confirmDelete()">
+                            <i class="fas fa-trash me-2"></i>Delete Report
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Schedule Modal -->
+<div class="modal fade" id="scheduleModal" tabindex="-1" aria-labelledby="scheduleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="scheduleModalLabel">Schedule Report</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="{% url 'analytics:schedule_report' report_id=report.id %}" id="scheduleForm">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="schedule_frequency" class="form-label">Run Frequency</label>
+                        <select class="form-select" id="schedule_frequency" name="schedule_frequency" required>
+                            <option value="" disabled {% if not report.schedule_frequency %}selected{% endif %}>Select frequency</option>
+                            <option value="daily" {% if report.schedule_frequency == 'daily' %}selected{% endif %}>Daily</option>
+                            <option value="weekly" {% if report.schedule_frequency == 'weekly' %}selected{% endif %}>Weekly</option>
+                            <option value="monthly" {% if report.schedule_frequency == 'monthly' %}selected{% endif %}>Monthly</option>
+                            <option value="quarterly" {% if report.schedule_frequency == 'quarterly' %}selected{% endif %}>Quarterly</option>
+                        </select>
+                        <div class="form-text">
+                            How often should this report be generated automatically.
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('scheduleForm').submit();">
+                    {% if report.is_scheduled %}Update Schedule{% else %}Enable Scheduling{% endif %}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+
+<script>
+    // Report data from server
+    const reportData = {{ report_data|safe }};
+    
+    // Main initialization
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize charts
+        if (reportData && typeof reportData === 'object') {
+            // Main chart
+            try {
+                initializeMainChart();
+            } catch (error) {
+                console.error('Error initializing main chart:', error);
+            }
+            
+            // Secondary charts
+            try {
+                initializeSecondaryCharts();
+            } catch (error) {
+                console.error('Error initializing secondary charts:', error);
+            }
+            
+            // Data table
+            try {
+                initializeDataTable();
+            } catch (error) {
+                console.error('Error initializing data table:', error);
+            }
+        }
+        
+        // Initialize tabs
+        const triggerTabList = document.querySelectorAll('a[data-bs-toggle="tab"]');
+        triggerTabList.forEach(function(triggerEl) {
+            const tabTrigger = new bootstrap.Tab(triggerEl);
+            
+            triggerEl.addEventListener('click', function(event) {
+                event.preventDefault();
+                tabTrigger.show();
+            });
+        });
+    });
+    
+    // Initialize the main chart
+    function initializeMainChart() {
+        const ctx = document.getElementById('mainChart');
+        if (!ctx) return;
+        
+        // Default chart configuration if data doesn't contain specific chart data
+        let chartData = {
+            type: 'bar',
+            data: {
+                labels: ['No Data'],
+                datasets: [{
+                    label: 'No data available',
+                    data: [0],
+                    backgroundColor: '#f8f9fa'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'No Chart Data Available'
+                    }
+                }
+            }
+        };
+        
+        // If report has chart data, use it
+        if (reportData.charts && reportData.charts.main) {
+            chartData = reportData.charts.main;
+        } else if (reportData.main_chart) {
+            chartData = reportData.main_chart;
+        }
+        
+        new Chart(ctx, chartData);
+    }
+    
+    // Initialize secondary charts
+    function initializeSecondaryCharts() {
+        const ctx1 = document.getElementById('secondaryChart1');
+        const ctx2 = document.getElementById('secondaryChart2');
+        
+        // Default chart configuration
+        const defaultChartData = {
+            type: 'pie',
+            data: {
+                labels: ['No Data'],
+                datasets: [{
+                    data: [1],
+                    backgroundColor: ['#f8f9fa']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'No Chart Data Available'
+                    }
+                }
+            }
+        };
+        
+        // First secondary chart
+        if (ctx1) {
+            let chartData1 = defaultChartData;
+            
+            if (reportData.charts && reportData.charts.secondary1) {
+                chartData1 = reportData.charts.secondary1;
+            } else if (reportData.secondary_chart_1) {
+                chartData1 = reportData.secondary_chart_1;
+            }
+            
+            new Chart(ctx1, chartData1);
+        }
+        
+        // Second secondary chart
+        if (ctx2) {
+            let chartData2 = defaultChartData;
+            
+            if (reportData.charts && reportData.charts.secondary2) {
+                chartData2 = reportData.charts.secondary2;
+            } else if (reportData.secondary_chart_2) {
+                chartData2 = reportData.secondary_chart_2;
+            }
+            
+            new Chart(ctx2, chartData2);
+        }
+    }
+    
+    // Initialize data table
+    function initializeDataTable() {
+        const tableBody = document.getElementById('reportDataTable');
+        const tableHead = document.querySelector('#data table thead tr');
+        
+        if (!tableBody || !tableHead) return;
+        
+        // Clear existing content
+        tableBody.innerHTML = '';
+        tableHead.innerHTML = '';
+        
+        // Get table data from report data
+        let tableData = [];
+        let headers = [];
+        
+        if (reportData.table_data) {
+            tableData = reportData.table_data.data || [];
+            headers = reportData.table_data.headers || [];
+        } else if (reportData.data_table) {
+            tableData = reportData.data_table.data || [];
+            headers = reportData.data_table.headers || [];
+        } else if (Array.isArray(reportData)) {
+            tableData = reportData;
+            // Try to extract headers from first row
+            if (tableData.length > 0 && typeof tableData[0] === 'object') {
+                headers = Object.keys(tableData[0]);
+            }
+        }
+        
+        // Add headers
+        if (headers.length > 0) {
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                tableHead.appendChild(th);
+            });
+        } else {
+            const th = document.createElement('th');
+            th.textContent = 'No Data';
+            tableHead.appendChild(th);
+        }
+        
+        // Add rows
+        if (tableData.length > 0) {
+            tableData.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                if (Array.isArray(row)) {
+                    // Row is an array
+                    row.forEach(cell => {
+                        const td = document.createElement('td');
+                        td.textContent = cell;
+                        tr.appendChild(td);
+                    });
+                } else if (typeof row === 'object') {
+                    // Row is an object
+                    headers.forEach(header => {
+                        const td = document.createElement('td');
+                        td.textContent = row[header];
+                        tr.appendChild(td);
+                    });
+                }
+                
+                tableBody.appendChild(tr);
+            });
+        } else {
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.textContent = 'No data available';
+            td.colSpan = headers.length || 1;
+            td.className = 'text-center';
+            tr.appendChild(td);
+            tableBody.appendChild(tr);
+        }
+    }
+    
+    // Confirm delete
+    function confirmDelete() {
+        if (confirm('Are you sure you want to delete this report? This action cannot be undone.')) {
+            document.getElementById('deleteForm').submit();
+        }
+    }
+</script>
+{% endblock %}

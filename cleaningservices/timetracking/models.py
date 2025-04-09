@@ -293,3 +293,49 @@ class TimesheetEntry(models.Model):
     
     def __str__(self):
         return f"Timesheet Entry: {self.time_entry} in {self.timesheet}"
+
+
+class TimeRecord(models.Model):
+    """Model for time records used by analytics."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='time_records')
+    date = models.DateField()
+    clock_in = models.DateTimeField()
+    clock_out = models.DateTimeField(null=True, blank=True)
+    duration = models.DurationField(null=True, blank=True)
+    
+    # Additional fields
+    job_assignment = models.ForeignKey('jobs.JobAssignment', on_delete=models.SET_NULL, null=True, blank=True)
+    location = models.CharField(max_length=255, blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        ordering = ['-date', '-clock_in']
+        
+    def __str__(self):
+        return f"Time Record: {self.user.get_full_name()} - {self.date}"
+    
+    def save(self, *args, **kwargs):
+        # Calculate duration if clock_out exists
+        if self.clock_out and self.clock_in:
+            self.duration = self.clock_out - self.clock_in
+        super().save(*args, **kwargs)
+
+
+class Break(models.Model):
+    """Model for breaks within time records."""
+    time_record = models.ForeignKey(TimeRecord, on_delete=models.CASCADE, related_name='breaks')
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField(null=True, blank=True)
+    duration = models.DurationField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['start_time']
+        
+    def __str__(self):
+        return f"Break for {self.time_record}"
+    
+    def save(self, *args, **kwargs):
+        # Calculate duration if end_time exists
+        if self.end_time and self.start_time:
+            self.duration = self.end_time - self.start_time
+        super().save(*args, **kwargs)

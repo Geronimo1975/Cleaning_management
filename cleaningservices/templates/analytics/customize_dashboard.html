@@ -1,0 +1,572 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .widget-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .widget-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .widget-card.selected {
+        border: 2px solid #0052CC;
+    }
+    
+    .dashboard-preview {
+        min-height: 400px;
+        border: 2px dashed #ccc;
+        background-color: #f8f9fa;
+        position: relative;
+    }
+    
+    .dashboard-preview-placeholder {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+    }
+    
+    .widget-preview {
+        border: 1px solid #dee2e6;
+        background-color: white;
+        border-radius: 0.25rem;
+        margin-bottom: 1rem;
+        position: relative;
+    }
+    
+    .widget-preview-header {
+        padding: 0.75rem 1rem;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        font-weight: bold;
+    }
+    
+    .widget-preview-body {
+        padding: 1rem;
+        min-height: 100px;
+    }
+    
+    .widget-preview-actions {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h1 class="h3 mb-0">{{ title }}</h1>
+            
+            <div>
+                <a href="{% url 'analytics:dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Dashboard Preview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="dashboard-preview" id="dashboardPreview">
+                        <div class="dashboard-preview-placeholder" id="previewPlaceholder">
+                            <i class="fas fa-th-large fa-3x mb-3 text-muted"></i>
+                            <h5>Dashboard Preview</h5>
+                            <p class="text-muted">Add widgets from the right panel to customize your dashboard</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Save Dashboard View</h5>
+                </div>
+                <div class="card-body">
+                    <form id="saveViewForm">
+                        <div class="mb-3">
+                            <label for="viewName" class="form-label">View Name</label>
+                            <input type="text" class="form-control" id="viewName" name="name" required 
+                                   value="{{ current_view.name|default:'' }}">
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="defaultView" name="is_default"
+                                   {% if current_view and current_view.is_default %}checked{% endif %}>
+                            <label class="form-check-label" for="defaultView">
+                                Set as default view
+                            </label>
+                        </div>
+                        
+                        <input type="hidden" id="viewId" name="view_id" value="{{ current_view.id|default:'' }}">
+                        <input type="hidden" id="configuration" name="configuration" value="">
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary" id="cancelButton">Cancel</button>
+                            <div>
+                                {% if current_view %}
+                                <a href="{% url 'analytics:delete_dashboard_view' view_id=current_view.id %}" class="btn btn-outline-danger me-2" 
+                                   onclick="return confirm('Are you sure you want to delete this view?');">
+                                    <i class="fas fa-trash me-2"></i>Delete
+                                </a>
+                                {% endif %}
+                                <button type="submit" class="btn btn-primary" id="saveButton">
+                                    <i class="fas fa-save me-2"></i>Save View
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Available Widgets</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Select widgets to add to your dashboard</p>
+                    
+                    <div class="row" id="availableWidgets">
+                        {% for widget in available_widgets %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card widget-card h-100" data-widget-id="{{ widget.id }}">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ widget.name }}</h6>
+                                    <p class="card-text small text-muted">{{ widget.description }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Layout Options</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Layout Type</label>
+                        <div class="btn-group w-100" role="group" aria-label="Layout Type">
+                            <input type="radio" class="btn-check" name="layoutType" id="layoutGrid" value="grid" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="layoutGrid">
+                                <i class="fas fa-th-large me-2"></i>Grid
+                            </label>
+                            
+                            <input type="radio" class="btn-check" name="layoutType" id="layoutList" value="list" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="layoutList">
+                                <i class="fas fa-list me-2"></i>List
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Widget Width (Grid layout only)</label>
+                        <div class="btn-group w-100" role="group" aria-label="Widget Width">
+                            <input type="radio" class="btn-check" name="widgetWidth" id="widthHalf" value="6" autocomplete="off" checked>
+                            <label class="btn btn-outline-secondary" for="widthHalf">
+                                Half Width
+                            </label>
+                            
+                            <input type="radio" class="btn-check" name="widgetWidth" id="widthFull" value="12" autocomplete="off">
+                            <label class="btn btn-outline-secondary" for="widthFull">
+                                Full Width
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Dashboard configuration from server
+    let dashboardConfig = {{ current_config|safe }};
+    
+    // Active widget previews
+    const activeWidgets = [];
+    
+    // Main initialization
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeWidgetSelection();
+        initializeLayout();
+        initializeForm();
+        renderDashboardPreview();
+    });
+    
+    // Initialize widget selection
+    function initializeWidgetSelection() {
+        const widgetCards = document.querySelectorAll('.widget-card');
+        
+        widgetCards.forEach(card => {
+            const widgetId = card.dataset.widgetId;
+            
+            // Mark as selected if it's already in the config
+            if (isWidgetInConfig(widgetId)) {
+                card.classList.add('selected');
+            }
+            
+            card.addEventListener('click', function() {
+                toggleWidgetSelection(card, widgetId);
+            });
+        });
+    }
+    
+    // Initialize layout options
+    function initializeLayout() {
+        // Set layout type based on config
+        const layoutType = dashboardConfig.layout || 'grid';
+        const layoutRadio = document.querySelector(`input[name="layoutType"][value="${layoutType}"]`);
+        if (layoutRadio) {
+            layoutRadio.checked = true;
+        }
+        
+        // Add layout change listeners
+        const layoutRadios = document.querySelectorAll('input[name="layoutType"]');
+        layoutRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                dashboardConfig.layout = this.value;
+                renderDashboardPreview();
+            });
+        });
+        
+        // Add widget width listeners
+        const widthRadios = document.querySelectorAll('input[name="widgetWidth"]');
+        widthRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                const width = parseInt(this.value, 10);
+                // Update width for newly added widgets only
+            });
+        });
+    }
+    
+    // Initialize form for saving view
+    function initializeForm() {
+        const form = document.getElementById('saveViewForm');
+        
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Update configuration with current values
+                updateConfiguration();
+                
+                // Set configuration in form field
+                document.getElementById('configuration').value = JSON.stringify(dashboardConfig);
+                
+                // Create form data
+                const formData = {
+                    view_id: document.getElementById('viewId').value,
+                    name: document.getElementById('viewName').value,
+                    configuration: dashboardConfig,
+                    is_default: document.getElementById('defaultView').checked
+                };
+                
+                // Send AJAX request
+                fetch('{% url "analytics:save_dashboard_view" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Update view_id if it was a new view
+                        if (!document.getElementById('viewId').value) {
+                            document.getElementById('viewId').value = data.view_id;
+                        }
+                        
+                        // Show success message
+                        showAlert('success', data.message);
+                        
+                        // Redirect after a short delay
+                        setTimeout(() => {
+                            window.location.href = '{% url "analytics:dashboard" %}';
+                        }, 1500);
+                    } else {
+                        showAlert('danger', data.message || 'Error saving dashboard view');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving view:', error);
+                    showAlert('danger', 'Failed to save dashboard view');
+                });
+            });
+        }
+        
+        // Cancel button
+        const cancelButton = document.getElementById('cancelButton');
+        if (cancelButton) {
+            cancelButton.addEventListener('click', function() {
+                window.location.href = '{% url "analytics:dashboard" %}';
+            });
+        }
+    }
+    
+    // Render dashboard preview
+    function renderDashboardPreview() {
+        const container = document.getElementById('dashboardPreview');
+        const placeholder = document.getElementById('previewPlaceholder');
+        
+        if (!container) return;
+        
+        // Clear existing preview elements (but keep placeholder)
+        const existingPreviews = container.querySelectorAll('.widget-preview');
+        existingPreviews.forEach(preview => preview.remove());
+        
+        // Get widgets from config
+        const widgets = dashboardConfig.widgets || [];
+        
+        // Show/hide placeholder based on whether we have widgets
+        if (widgets.length === 0) {
+            if (placeholder) placeholder.style.display = 'block';
+            return;
+        } else {
+            if (placeholder) placeholder.style.display = 'none';
+        }
+        
+        // Sort widgets by position
+        const sortedWidgets = [...widgets].sort((a, b) => (a.position || 0) - (b.position || 0));
+        
+        // Render based on layout type
+        const layoutType = dashboardConfig.layout || 'grid';
+        
+        if (layoutType === 'grid') {
+            renderGridLayout(container, sortedWidgets);
+        } else if (layoutType === 'list') {
+            renderListLayout(container, sortedWidgets);
+        }
+    }
+    
+    // Render grid layout preview
+    function renderGridLayout(container, widgets) {
+        // First, add the summary row if summary widget exists
+        const summaryWidget = widgets.find(w => w.id === 'summary');
+        if (summaryWidget) {
+            const summaryRow = document.createElement('div');
+            summaryRow.className = 'row mb-4';
+            container.appendChild(summaryRow);
+            
+            const summaryCol = document.createElement('div');
+            summaryCol.className = 'col-12';
+            summaryRow.appendChild(summaryCol);
+            
+            createWidgetPreview(summaryCol, summaryWidget);
+        }
+        
+        // Create main row for other widgets
+        const mainRow = document.createElement('div');
+        mainRow.className = 'row';
+        container.appendChild(mainRow);
+        
+        // Add other widgets
+        const otherWidgets = widgets.filter(w => w.id !== 'summary');
+        
+        otherWidgets.forEach(widget => {
+            const col = document.createElement('div');
+            col.className = `col-md-${widget.width || 6} mb-4`;
+            mainRow.appendChild(col);
+            
+            createWidgetPreview(col, widget);
+        });
+    }
+    
+    // Render list layout preview
+    function renderListLayout(container, widgets) {
+        widgets.forEach(widget => {
+            const row = document.createElement('div');
+            row.className = 'row mb-4';
+            container.appendChild(row);
+            
+            const col = document.createElement('div');
+            col.className = 'col-12';
+            row.appendChild(col);
+            
+            createWidgetPreview(col, widget);
+        });
+    }
+    
+    // Create a preview of a widget
+    function createWidgetPreview(container, widget) {
+        const widgetCard = document.querySelector(`.widget-card[data-widget-id="${widget.id}"]`);
+        const widgetName = widgetCard ? widgetCard.querySelector('.card-title').textContent : titleCase(widget.id.replace('_', ' '));
+        
+        const preview = document.createElement('div');
+        preview.className = 'widget-preview';
+        preview.dataset.widgetId = widget.id;
+        preview.dataset.position = widget.position || 0;
+        
+        preview.innerHTML = `
+            <div class="widget-preview-header">
+                ${widgetName}
+            </div>
+            <div class="widget-preview-body">
+                <div class="text-center text-muted">
+                    <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                    <p class="mb-0">Widget Preview</p>
+                </div>
+            </div>
+            <div class="widget-preview-actions">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-widget" data-widget-id="${widget.id}">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        container.appendChild(preview);
+        
+        // Add remove handler
+        const removeBtn = preview.querySelector('.remove-widget');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function() {
+                removeWidget(widget.id);
+            });
+        }
+    }
+    
+    // Toggle widget selection
+    function toggleWidgetSelection(card, widgetId) {
+        if (card.classList.contains('selected')) {
+            // Remove widget
+            card.classList.remove('selected');
+            removeWidget(widgetId);
+        } else {
+            // Add widget
+            card.classList.add('selected');
+            addWidget(widgetId);
+        }
+    }
+    
+    // Add a widget to the config
+    function addWidget(widgetId) {
+        if (!isWidgetInConfig(widgetId)) {
+            // Get current width setting
+            const widthRadio = document.querySelector('input[name="widgetWidth"]:checked');
+            const width = widthRadio ? parseInt(widthRadio.value, 10) : 6;
+            
+            // Get the next position
+            const position = getNextPosition();
+            
+            // Add to config
+            dashboardConfig.widgets.push({
+                id: widgetId,
+                width: width,
+                height: 2,
+                position: position
+            });
+            
+            // Re-render preview
+            renderDashboardPreview();
+        }
+    }
+    
+    // Remove a widget from the config
+    function removeWidget(widgetId) {
+        if (isWidgetInConfig(widgetId)) {
+            // Filter out the widget
+            dashboardConfig.widgets = dashboardConfig.widgets.filter(w => w.id !== widgetId);
+            
+            // Unselect the card
+            const card = document.querySelector(`.widget-card[data-widget-id="${widgetId}"]`);
+            if (card) {
+                card.classList.remove('selected');
+            }
+            
+            // Re-render preview
+            renderDashboardPreview();
+        }
+    }
+    
+    // Check if a widget is in the config
+    function isWidgetInConfig(widgetId) {
+        return dashboardConfig.widgets.some(w => w.id === widgetId);
+    }
+    
+    // Get the next position value
+    function getNextPosition() {
+        if (dashboardConfig.widgets.length === 0) {
+            return 0;
+        }
+        
+        return Math.max(...dashboardConfig.widgets.map(w => w.position || 0)) + 1;
+    }
+    
+    // Update configuration with current values
+    function updateConfiguration() {
+        // Make sure widgets is an array
+        if (!dashboardConfig.widgets) {
+            dashboardConfig.widgets = [];
+        }
+        
+        // Configuration is updated throughout user interactions
+    }
+    
+    // Show alert message
+    function showAlert(type, message) {
+        const alertContainer = document.createElement('div');
+        alertContainer.className = `alert alert-${type} alert-dismissible fade show`;
+        alertContainer.role = 'alert';
+        alertContainer.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        // Insert at the top of the content
+        const content = document.querySelector('.container-fluid');
+        if (content) {
+            content.insertBefore(alertContainer, content.firstChild);
+            
+            // Auto dismiss after 5 seconds
+            setTimeout(() => {
+                alertContainer.remove();
+            }, 5000);
+        }
+    }
+    
+    // Helper function to get CSRF token
+    function getCsrfToken() {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith('csrftoken=')) {
+                return cookie.substring('csrftoken='.length, cookie.length);
+            }
+        }
+        return '';
+    }
+    
+    // Helper function to convert string to title case
+    function titleCase(str) {
+        return str.replace(
+            /\w\S*/g,
+            function(txt) {
+                return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+            }
+        );
+    }
+</script>
+{% endblock %}

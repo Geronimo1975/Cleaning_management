@@ -20,6 +20,7 @@ urlpatterns = [
     path('notifications/', include('notifications.urls')),
     path('contracts/', include('contracts.urls')),
     path('timetracking/', include('timetracking.urls')),
+    path('analytics/', include('analytics.urls', namespace='analytics')),
 ]
 
 if settings.DEBUG:

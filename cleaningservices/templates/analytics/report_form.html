@@ -1,0 +1,350 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .json-editor {
+        font-family: monospace;
+        width: 100%;
+        min-height: 100px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h1 class="h3 mb-0">{{ title }}</h1>
+            
+            <div>
+                <a href="{% url 'analytics:reports_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Reports
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Report Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.title.id_for_label }}" class="form-label">Report Title*</label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                            <div class="text-danger">
+                                {{ form.title.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.report_type.id_for_label }}" class="form-label">Report Type*</label>
+                                {{ form.report_type }}
+                                {% if form.report_type.errors %}
+                                <div class="text-danger">
+                                    {{ form.report_type.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.period.id_for_label }}" class="form-label">Period*</label>
+                                {{ form.period }}
+                                {% if form.period.errors %}
+                                <div class="text-danger">
+                                    {{ form.period.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.start_date.id_for_label }}" class="form-label">Start Date*</label>
+                                {{ form.start_date }}
+                                {% if form.start_date.errors %}
+                                <div class="text-danger">
+                                    {{ form.start_date.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.end_date.id_for_label }}" class="form-label">End Date*</label>
+                                {{ form.end_date }}
+                                {% if form.end_date.errors %}
+                                <div class="text-danger">
+                                    {{ form.end_date.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.company.id_for_label }}" class="form-label">Company</label>
+                                {{ form.company }}
+                                {% if form.company.errors %}
+                                <div class="text-danger">
+                                    {{ form.company.errors }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">Filter report to a specific company</div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="{{ form.cleaner.id_for_label }}" class="form-label">Cleaner</label>
+                                {{ form.cleaner }}
+                                {% if form.cleaner.errors %}
+                                <div class="text-danger">
+                                    {{ form.cleaner.errors }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">Filter report to a specific cleaner</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.parameters.id_for_label }}" class="form-label">Parameters (JSON)</label>
+                            {{ form.parameters }}
+                            {% if form.parameters.errors %}
+                            <div class="text-danger">
+                                {{ form.parameters.errors }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">{{ form.parameters.help_text }}</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.is_scheduled }}
+                                <label class="form-check-label" for="{{ form.is_scheduled.id_for_label }}">
+                                    Schedule this report to run automatically
+                                </label>
+                            </div>
+                            {% if form.is_scheduled.errors %}
+                            <div class="text-danger">
+                                {{ form.is_scheduled.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3" id="scheduleFrequencyContainer">
+                            <label for="{{ form.schedule_frequency.id_for_label }}" class="form-label">Schedule Frequency</label>
+                            {{ form.schedule_frequency }}
+                            {% if form.schedule_frequency.errors %}
+                            <div class="text-danger">
+                                {{ form.schedule_frequency.errors }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">How often this report should be generated</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'analytics:reports_list' %}" class="btn btn-outline-secondary me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                {% if report %}Update{% else %}Create{% endif %} Report
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Report Types</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Cleaner Performance</h6>
+                            </div>
+                            <p class="mb-1">Analyze the performance of cleaners based on ratings, jobs completed, and other metrics.</p>
+                        </div>
+                        
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Company Revenue</h6>
+                            </div>
+                            <p class="mb-1">Track revenue trends, sources, and financial performance over time.</p>
+                        </div>
+                        
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Job Statistics</h6>
+                            </div>
+                            <p class="mb-1">Analyze job completion rates, efficiency, and distribution across different categories.</p>
+                        </div>
+                        
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Contract Status</h6>
+                            </div>
+                            <p class="mb-1">Overview of contracts and their various statuses (active, pending, expired, etc.)</p>
+                        </div>
+                        
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Customer Satisfaction</h6>
+                            </div>
+                            <p class="mb-1">Track customer ratings and satisfaction metrics over time.</p>
+                        </div>
+                        
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Time Tracking</h6>
+                            </div>
+                            <p class="mb-1">Analyze working hours, attendance, and time management metrics.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Parameters Help</h5>
+                </div>
+                <div class="card-body">
+                    <p>The parameters field accepts JSON objects that control the report generation. Here are some examples:</p>
+                    
+                    <pre class="bg-light p-3 rounded small">
+{
+  "include_inactive": false,
+  "min_rating": 3,
+  "sort_by": "rating",
+  "limit": 10
+}
+                    </pre>
+                    
+                    <p class="mt-3">Parameters vary by report type:</p>
+                    
+                    <ul class="small">
+                        <li><strong>Cleaner Performance:</strong> min_rating, include_inactive, sort_by</li>
+                        <li><strong>Company Revenue:</strong> include_cancelled, group_by</li>
+                        <li><strong>Job Statistics:</strong> job_types, status, limit</li>
+                        <li><strong>Contract Status:</strong> status, sort_by, group_by</li>
+                        <li><strong>Custom Report:</strong> Any required parameters for your custom report</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle JSON parameter field
+        const parametersField = document.getElementById('{{ form.parameters.id_for_label }}');
+        if (parametersField) {
+            parametersField.addEventListener('blur', function() {
+                try {
+                    if (this.value.trim() !== '') {
+                        // Try to parse JSON and format it nicely
+                        const json = JSON.parse(this.value);
+                        this.value = JSON.stringify(json, null, 2);
+                        // Remove error styling if it was added
+                        this.classList.remove('is-invalid');
+                    }
+                } catch (e) {
+                    // Add error styling if JSON is invalid
+                    this.classList.add('is-invalid');
+                    console.error('Invalid JSON:', e);
+                }
+            });
+        }
+        
+        // Toggle schedule frequency visibility based on is_scheduled checkbox
+        const isScheduledCheckbox = document.getElementById('{{ form.is_scheduled.id_for_label }}');
+        const scheduleFrequencyContainer = document.getElementById('scheduleFrequencyContainer');
+        
+        if (isScheduledCheckbox && scheduleFrequencyContainer) {
+            function toggleScheduleFrequency() {
+                if (isScheduledCheckbox.checked) {
+                    scheduleFrequencyContainer.style.display = 'block';
+                } else {
+                    scheduleFrequencyContainer.style.display = 'none';
+                }
+            }
+            
+            // Set initial state
+            toggleScheduleFrequency();
+            
+            // Add change listener
+            isScheduledCheckbox.addEventListener('change', toggleScheduleFrequency);
+        }
+        
+        // Handle period selection and date fields
+        const periodSelect = document.getElementById('{{ form.period.id_for_label }}');
+        const startDateInput = document.getElementById('{{ form.start_date.id_for_label }}');
+        const endDateInput = document.getElementById('{{ form.end_date.id_for_label }}');
+        
+        if (periodSelect && startDateInput && endDateInput) {
+            periodSelect.addEventListener('change', function() {
+                // For custom period, enable date fields, otherwise set them based on period
+                if (this.value === 'custom') {
+                    startDateInput.readOnly = false;
+                    endDateInput.readOnly = false;
+                } else {
+                    // Set date values based on period (to be implemented if needed)
+                    // This will be handled by the form's clean method on the server
+                }
+            });
+        }
+        
+        // Handle company selection to filter cleaners
+        const companySelect = document.getElementById('{{ form.company.id_for_label }}');
+        const cleanerSelect = document.getElementById('{{ form.cleaner.id_for_label }}');
+        
+        if (companySelect && cleanerSelect) {
+            companySelect.addEventListener('change', function() {
+                const companyId = this.value;
+                
+                if (companyId) {
+                    // Filter cleaners by company
+                    // This could be an AJAX call to get cleaners for this company
+                    // For simplicity, we'll just disable options that don't match
+                    
+                    // Reset cleaner selection
+                    cleanerSelect.value = '';
+                    
+                    // Enable/disable options based on company
+                    for (const option of cleanerSelect.options) {
+                        if (option.value === '' || option.dataset.companyId === companyId) {
+                            option.disabled = false;
+                        } else {
+                            option.disabled = true;
+                        }
+                    }
+                } else {
+                    // Enable all options
+                    for (const option of cleanerSelect.options) {
+                        option.disabled = false;
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,20 @@
+<!-- Time Tracking Widget -->
+<div class="card shadow-sm h-100">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Time Tracking</h5>
+        <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-ellipsis-v"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item refresh-chart" href="#" data-chart="time_tracking"><i class="fas fa-sync-alt me-2"></i>Refresh</a></li>
+                <li><a class="dropdown-item" href="{% url 'analytics:reports_list' %}?report_type=time_tracking"><i class="fas fa-file-alt me-2"></i>View Reports</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="chart-container">
+            <canvas id="chart-{{ widget_id }}"></canvas>
+        </div>
+    </div>
+</div>

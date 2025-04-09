@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.nodejs
     pkgs.bash
     pkgs.rustc
     pkgs.libiconv

@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'shop',
     'contracts',
     'timetracking',
+    'analytics',
     'notifications',
 ]
 

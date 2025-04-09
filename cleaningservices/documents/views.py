@@ -593,3 +593,89 @@ def close_conversation_view(request, conversation_id):
     
     messages.success(request, 'Conversation closed successfully.')
     return redirect('chatbot')
+
+
+@login_required
+def floating_chatbot_send_message(request):
+    """API endpoint for the floating chatbot widget."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    user_message = request.POST.get('message', '').strip()
+    conversation_id = request.POST.get('conversation_id')
+    
+    if not user_message:
+        return JsonResponse({'error': 'No message provided'}, status=400)
+    
+    # Get or create conversation
+    if conversation_id and conversation_id.isdigit():
+        try:
+            conversation = ChatConversation.objects.get(
+                id=int(conversation_id), 
+                user=request.user
+            )
+        except ChatConversation.DoesNotExist:
+            conversation = None
+    else:
+        conversation = None
+    
+    # If no valid conversation, create a new one
+    if not conversation:
+        conversation = ChatConversation.objects.create(
+            user=request.user,
+            title="New Conversation"
+        )
+    
+    # Save the user message
+    ChatMessage.objects.create(
+        conversation=conversation,
+        message=user_message,
+        is_bot=False
+    )
+    
+    # Get documents for context based on user's permissions
+    if request.user.is_staff:
+        all_documents = Document.objects.all()
+    elif request.user.role == User.Role.COMPANY:
+        try:
+            company = CompanyProfile.objects.get(user=request.user)
+            all_documents = Document.objects.filter(
+                Q(access_level='public') | 
+                Q(company=company) |
+                Q(created_by=request.user)
+            ).distinct()
+        except CompanyProfile.DoesNotExist:
+            all_documents = Document.objects.filter(
+                Q(access_level='public') |
+                Q(created_by=request.user)
+            ).distinct()
+    else:
+        all_documents = Document.objects.filter(
+            Q(access_level='public') |
+            Q(created_by=request.user)
+        ).distinct()
+    
+    # Use RAG to find relevant documents
+    relevant_documents = search_documents_for_query(user_message, all_documents)
+    
+    # Get conversation history
+    history = conversation.messages.all().order_by('timestamp')
+    
+    # Generate chatbot response
+    bot_response = get_chatbot_response(user_message, relevant_documents, history)
+    
+    # Save the bot response
+    ChatMessage.objects.create(
+        conversation=conversation,
+        message=bot_response,
+        is_bot=True
+    )
+    
+    # Update conversation title if it's new
+    if conversation.title == "New Conversation" and conversation.messages.count() >= 2:
+        conversation.update_title_from_first_message()
+    
+    return JsonResponse({
+        'message': bot_response,
+        'conversation_id': conversation.id
+    })

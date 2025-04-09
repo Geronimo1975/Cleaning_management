@@ -19,4 +19,7 @@ urlpatterns = [
     path('chatbot/send-message/', views.send_message_view, name='send_message'),
     path('chatbot/get-messages/<int:conversation_id>/', views.get_conversation_messages_view, name='get_conversation_messages'),
     path('chatbot/close-conversation/<int:conversation_id>/', views.close_conversation_view, name='close_conversation'),
+    
+    # Floating chatbot API
+    path('chatbot/floating/send-message/', views.floating_chatbot_send_message, name='chatbot_send_message'),
 ]

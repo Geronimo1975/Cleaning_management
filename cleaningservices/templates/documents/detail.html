@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ document.title }} - Document Details{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <!-- Document details -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">{{ document.title }}</h4>
+                    <div>
+                        <a href="{% url 'document_list' %}" class="btn btn-outline-light btn-sm me-2">
+                            <i class="fas fa-arrow-left me-1"></i> Back to List
+                        </a>
+                        <a href="{% url 'document_download' document.id %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-download me-1"></i> Download
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-3">
+                            <div>
+                                <span class="badge {% if document.access_level == 'public' %}bg-success{% elif document.access_level == 'company' %}bg-warning{% else %}bg-danger{% endif %} me-2">
+                                    {{ document.get_access_level_display }}
+                                </span>
+                                <span class="badge bg-info me-2">{{ document.get_document_type_display }}</span>
+                                <span class="badge bg-secondary">{{ document.category.name }}</span>
+                            </div>
+                            
+                            {% if user.is_staff or document.created_by == user or user.role == 'COMPANY' and document.company == user.companyprofile %}
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="documentActions" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-cog"></i> Actions
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="documentActions">
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'edit_document' document.id %}">
+                                            <i class="fas fa-edit me-2"></i> Edit Document
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="{% url 'delete_document' document.id %}">
+                                            <i class="fas fa-trash me-2"></i> Delete Document
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <p>{{ document.description }}</p>
+                        
+                        {% if document.tags %}
+                        <div class="mb-3">
+                            <strong>Tags:</strong>
+                            {% for tag in document.tags %}
+                            <span class="badge bg-light text-dark me-1">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="d-flex justify-content-between text-muted small mb-3">
+                            <div>
+                                <strong>Uploaded by:</strong> {{ document.created_by.get_full_name|default:document.created_by.email }}
+                            </div>
+                            <div>
+                                <strong>Uploaded on:</strong> {{ document.created_at|date:"F j, Y, g:i a" }}
+                            </div>
+                        </div>
+                        
+                        {% if document.company %}
+                        <div class="text-muted small mb-3">
+                            <strong>Company:</strong> {{ document.company.company_name }}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="text-center mt-4">
+                            <a href="{% url 'chatbot_document' document.id %}" class="btn btn-success">
+                                <i class="fas fa-robot me-2"></i> Chat with AI about this Document
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Document preview -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Document Preview</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="text-center">
+                                {% if document.file.url|lower|slice:"-4:" == ".pdf" %}
+                                    <div class="ratio ratio-16x9">
+                                        <iframe src="{{ document.file.url }}" allowfullscreen></iframe>
+                                    </div>
+                                {% elif document.file.url|lower|slice:"-4:" == ".jpg" or document.file.url|lower|slice:"-4:" == "jpeg" or document.file.url|lower|slice:"-4:" == ".png" or document.file.url|lower|slice:"-4:" == ".gif" %}
+                                    <img src="{{ document.file.url }}" alt="{{ document.title }}" class="img-fluid">
+                                {% else %}
+                                    <div class="p-5 bg-light rounded">
+                                        <i class="fas fa-file-alt fa-5x text-muted mb-3"></i>
+                                        <p>Preview not available for this file type.</p>
+                                        <a href="{% url 'document_download' document.id %}" class="btn btn-primary">
+                                            <i class="fas fa-download me-2"></i> Download to View
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Comments section -->
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Comments ({{ comments|length }})</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Comment form -->
+                            <form method="post" class="mb-4">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    {{ comment_form.comment }}
+                                    {% if comment_form.comment.errors %}
+                                        <div class="text-danger">{{ comment_form.comment.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-comment me-2"></i> Post Comment
+                                    </button>
+                                </div>
+                            </form>
+                            
+                            <!-- Comments list -->
+                            {% if comments %}
+                                <div class="list-group">
+                                    {% for comment in comments %}
+                                    <div class="list-group-item list-group-item-action flex-column align-items-start">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">{{ comment.user.get_full_name|default:comment.user.email }}</h6>
+                                            <small class="text-muted">{{ comment.created_at|date:"M d, Y, g:i a" }}</small>
+                                        </div>
+                                        <p class="mb-1">{{ comment.comment }}</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4 text-muted">
+                                    <i class="fas fa-comments fa-3x mb-3"></i>
+                                    <p>No comments yet. Be the first to comment!</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-md-4">
+            <!-- Access info -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Document Information</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>File Type</span>
+                            <span class="badge bg-secondary">{{ document.file.name|slice:"-3:"|upper }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Category</span>
+                            <span>{{ document.category.name }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Document Type</span>
+                            <span>{{ document.get_document_type_display }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Access Level</span>
+                            <span class="badge {% if document.access_level == 'public' %}bg-success{% elif document.access_level == 'company' %}bg-warning{% else %}bg-danger{% endif %}">
+                                {{ document.get_access_level_display }}
+                            </span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Created By</span>
+                            <span>{{ document.created_by.get_full_name|default:document.created_by.email }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Related documents -->
+            {% if related_documents %}
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Related Documents</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for related in related_documents %}
+                    <a href="{% url 'document_detail' related.id %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ related.title|truncatechars:40 }}</h6>
+                            <small>{{ related.get_document_type_display }}</small>
+                        </div>
+                        <small class="text-muted">{{ related.description|truncatechars:60 }}</small>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

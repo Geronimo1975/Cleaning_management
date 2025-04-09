@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Document - Cleaning Services{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Upload Document</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.title.id_for_label }}" class="form-label">Title</label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="text-danger">{{ form.title.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger">{{ form.description.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Provide a detailed description of the document's content.</div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.category.id_for_label }}" class="form-label">Category</label>
+                                {{ form.category }}
+                                {% if form.category.errors %}
+                                    <div class="text-danger">{{ form.category.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.document_type.id_for_label }}" class="form-label">Document Type</label>
+                                {{ form.document_type }}
+                                {% if form.document_type.errors %}
+                                    <div class="text-danger">{{ form.document_type.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.file.id_for_label }}" class="form-label">Document File</label>
+                            {{ form.file }}
+                            {% if form.file.errors %}
+                                <div class="text-danger">{{ form.file.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Supported formats: PDF, DOC, DOCX, TXT, etc.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.access_level.id_for_label }}" class="form-label">Access Level</label>
+                            {{ form.access_level }}
+                            {% if form.access_level.errors %}
+                                <div class="text-danger">{{ form.access_level.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Determine who can access this document.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.tags.id_for_label }}" class="form-label">Tags</label>
+                            {{ form.tags }}
+                            {% if form.tags.errors %}
+                                <div class="text-danger">{{ form.tags.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">{{ form.tags.help_text }}</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'document_list' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload me-2"></i> Upload Document
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Enable Bootstrap custom file input styling
+        document.querySelector('.form-control[type="file"]').addEventListener('change', function(e) {
+            const fileName = e.target.files[0].name;
+            const label = this.nextElementSibling;
+            if (label) {
+                label.innerText = fileName;
+            }
+        });
+    });
+</script>
+{% endblock %}

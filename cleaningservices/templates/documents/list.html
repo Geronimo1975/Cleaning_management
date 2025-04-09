@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+
+{% block title %}Documents - Cleaning Services{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3">
+            <!-- Search and Filter -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Search & Filter</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get">
+                        <div class="mb-3">
+                            <label for="{{ form.query.id_for_label }}" class="form-label">Search</label>
+                            {{ form.query }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.category.id_for_label }}" class="form-label">Category</label>
+                            {{ form.category }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.document_type.id_for_label }}" class="form-label">Document Type</label>
+                            {{ form.document_type }}
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i> Search
+                            </button>
+                            <a href="{% url 'document_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i> Clear Filters
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Categories -->
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Categories</h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for category in categories %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <a href="{% url 'document_list' %}?category={{ category.id }}">{{ category.name }}</a>
+                        <span class="badge bg-primary rounded-pill">{{ category.documents.count }}</span>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item">No categories available</li>
+                    {% endfor %}
+                </ul>
+                {% if user.role == 'COMPANY' or user.is_staff %}
+                <div class="card-footer">
+                    <a href="{% url 'manage_categories' %}" class="btn btn-sm btn-outline-primary d-block">
+                        <i class="fas fa-cog me-1"></i> Manage Categories
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Main content -->
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Documents</h4>
+                    {% if user.role == 'COMPANY' or user.is_staff %}
+                    <a href="{% url 'upload_document' %}" class="btn btn-light">
+                        <i class="fas fa-upload me-2"></i> Upload Document
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if documents %}
+                        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                            {% for document in documents %}
+                            <div class="col">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-header bg-light">
+                                        <span class="badge {% if document.access_level == 'public' %}bg-success{% elif document.access_level == 'company' %}bg-warning{% else %}bg-danger{% endif %} float-end">
+                                            {{ document.get_access_level_display|truncatechars:15 }}
+                                        </span>
+                                        <h6 class="text-muted mb-0">{{ document.get_document_type_display }}</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ document.title|truncatechars:40 }}</h5>
+                                        <p class="card-text small">{{ document.description|truncatechars:100 }}</p>
+                                        
+                                        {% if document.tags %}
+                                        <div class="mb-2">
+                                            {% for tag in document.tags %}
+                                            <span class="badge bg-light text-dark me-1">{{ tag }}</span>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="card-footer bg-white">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">{{ document.created_at|date:"M d, Y" }}</small>
+                                            <div class="btn-group">
+                                                <a href="{% url 'document_detail' document.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                                                <a href="{% url 'document_download' document.id %}" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
+                                                <a href="{% url 'chatbot_document' document.id %}" class="btn btn-sm btn-outline-success">
+                                                    <i class="fas fa-comments"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Pagination -->
+                        {% if documents.has_other_pages %}
+                        <nav aria-label="Document pagination" class="mt-4">
+                            <ul class="pagination justify-content-center">
+                                {% if documents.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1{% if request.GET.query %}&query={{ request.GET.query }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.document_type %}&document_type={{ request.GET.document_type }}{% endif %}">First</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ documents.previous_page_number }}{% if request.GET.query %}&query={{ request.GET.query }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.document_type %}&document_type={{ request.GET.document_type }}{% endif %}">Previous</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">First</span>
+                                </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link">Previous</span>
+                                </li>
+                                {% endif %}
+                                
+                                {% for i in documents.paginator.page_range %}
+                                    {% if documents.number == i %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ i }}</span>
+                                    </li>
+                                    {% elif i > documents.number|add:'-3' and i < documents.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ i }}{% if request.GET.query %}&query={{ request.GET.query }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.document_type %}&document_type={{ request.GET.document_type }}{% endif %}">{{ i }}</a>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if documents.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ documents.next_page_number }}{% if request.GET.query %}&query={{ request.GET.query }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.document_type %}&document_type={{ request.GET.document_type }}{% endif %}">Next</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ documents.paginator.num_pages }}{% if request.GET.query %}&query={{ request.GET.query }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.document_type %}&document_type={{ request.GET.document_type }}{% endif %}">Last</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Next</span>
+                                </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link">Last</span>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+                        
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-file-alt fa-5x text-muted mb-3"></i>
+                            <h5>No documents found</h5>
+                            <p class="text-muted">
+                                {% if request.GET.query or request.GET.category or request.GET.document_type %}
+                                    Try adjusting your search criteria or clearing filters.
+                                {% else %}
+                                    There are no documents available to view.
+                                {% endif %}
+                            </p>
+                            {% if user.role == 'COMPANY' or user.is_staff %}
+                            <a href="{% url 'upload_document' %}" class="btn btn-primary mt-3">
+                                <i class="fas fa-upload me-2"></i> Upload First Document
+                            </a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -73,10 +73,11 @@ WSGI_APPLICATION = 'cleaningservices.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+# Database configuration
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('PGDATABASE', 'postgres'),
+        'NAME': os.environ.get('PGDATABASE', 'neondb'),
         'USER': os.environ.get('PGUSER', 'postgres'),
         'PASSWORD': os.environ.get('PGPASSWORD', 'postgres'),
         'HOST': os.environ.get('PGHOST', 'localhost'),

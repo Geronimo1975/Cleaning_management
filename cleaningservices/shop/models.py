@@ -1,5 +1,8 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 
 
 class ProductCategory(models.Model):
@@ -103,6 +106,37 @@ class ShopSettings(models.Model):
         return "Shop Settings"
 
 
+class AffiliatePartner(models.Model):
+    """Affiliate marketing partners."""
+    PLATFORM_CHOICES = [
+        ('amazon', 'Amazon'),
+        ('ebay', 'eBay'),
+        ('walmart', 'Walmart'),
+        ('otto', 'Otto'),
+        ('other', 'Other'),
+    ]
+    
+    name = models.CharField(max_length=100)
+    platform = models.CharField(max_length=50, choices=PLATFORM_CHOICES, default='amazon')
+    affiliate_id = models.CharField(max_length=100, unique=True)
+    website = models.URLField(blank=True, null=True)
+    commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    contact_person = models.CharField(max_length=100, blank=True, null=True)
+    contact_email = models.EmailField(blank=True, null=True)
+    notes = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = _('Affiliate Partner')
+        verbose_name_plural = _('Affiliate Partners')
+        ordering = ['name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_platform_display()})"
+
+
 class AffiliateClick(models.Model):
     """Track affiliate link clicks for analytics."""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='clicks')
@@ -111,9 +145,72 @@ class AffiliateClick(models.Model):
     user_agent = models.TextField(blank=True)
     referrer = models.URLField(blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+    partner = models.ForeignKey(AffiliatePartner, on_delete=models.SET_NULL, null=True, blank=True, related_name='clicks')
+    utm_source = models.CharField(max_length=100, blank=True, null=True)
+    utm_medium = models.CharField(max_length=100, blank=True, null=True)
+    utm_campaign = models.CharField(max_length=100, blank=True, null=True)
     
     class Meta:
         ordering = ['-timestamp']
     
     def __str__(self):
         return f"Click on {self.product.title} at {self.timestamp}"
+
+
+class AffiliateConversion(models.Model):
+    """Track confirmed affiliate conversions/sales."""
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='conversions')
+    user = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True)
+    partner = models.ForeignKey(AffiliatePartner, on_delete=models.SET_NULL, null=True, blank=True, related_name='conversions')
+    order_reference = models.CharField(max_length=100, blank=True, null=True)
+    sale_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    commission_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    click = models.ForeignKey(AffiliateClick, on_delete=models.SET_NULL, null=True, blank=True, related_name='conversions')
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_verified = models.BooleanField(default=False)
+    
+    class Meta:
+        ordering = ['-timestamp']
+    
+    def __str__(self):
+        return f"Conversion: {self.product.title} - {self.sale_amount}"
+
+
+class AffiliateAttributionCookie(models.Model):
+    """Track affiliate attribution cookies for proper credit assignment."""
+    user = models.ForeignKey('accounts.User', on_delete=models.CASCADE, null=True, blank=True)
+    session_key = models.CharField(max_length=100, blank=True, null=True)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    partner = models.ForeignKey(AffiliatePartner, on_delete=models.CASCADE)
+    click = models.ForeignKey(AffiliateClick, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        user_id = self.user.id if self.user else self.session_key
+        return f"Attribution: {self.product.title} for {user_id}"
+
+
+class MarketingCampaign(models.Model):
+    """Marketing campaigns for affiliate products."""
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    partner = models.ForeignKey(AffiliatePartner, on_delete=models.CASCADE, related_name='campaigns')
+    products = models.ManyToManyField(Product, related_name='campaigns', blank=True)
+    utm_source = models.CharField(max_length=100, blank=True, null=True)
+    utm_medium = models.CharField(max_length=100, blank=True, null=True)
+    utm_campaign = models.CharField(max_length=100, blank=True, null=True)
+    start_date = models.DateField()
+    end_date = models.DateField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return self.name

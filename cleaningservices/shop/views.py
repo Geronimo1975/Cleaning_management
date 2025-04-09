@@ -5,8 +5,12 @@ from django.db.models import Q, Count, Avg
 from django.http import HttpResponseRedirect
 from django.contrib import messages
 from django.utils import timezone
+from datetime import timedelta
 
-from .models import Product, ProductCategory, ProductReview, AffiliateClick, ShopSettings
+from .models import (
+    Product, ProductCategory, ProductReview, AffiliateClick, ShopSettings,
+    AffiliatePartner, AffiliateAttributionCookie, MarketingCampaign
+)
 from .forms import ProductReviewForm, ProductSearchForm, AffiliateClickForm
 
 
@@ -153,7 +157,7 @@ def submit_product_review(request, slug):
 
 
 def track_affiliate_click(request):
-    """View for tracking affiliate link clicks."""
+    """View for tracking affiliate link clicks and setting attribution cookies."""
     if request.method == 'POST':
         form = AffiliateClickForm(request.POST)
         if form.is_valid():
@@ -162,14 +166,65 @@ def track_affiliate_click(request):
             
             product = get_object_or_404(Product, id=product_id)
             
+            # Determine affiliate partner
+            partner = None
+            if product.affiliate_tag:
+                # Try to find a matching partner by affiliate_id
+                partner = AffiliatePartner.objects.filter(affiliate_id=product.affiliate_tag, is_active=True).first()
+            
+            # If no specific partner found, use default Amazon partner if exists
+            if not partner:
+                settings = ShopSettings.objects.first()
+                if settings and settings.amazon_affiliate_id:
+                    partner = AffiliatePartner.objects.filter(
+                        platform='amazon', 
+                        is_active=True
+                    ).first()
+            
+            # Get UTM parameters
+            utm_source = request.GET.get('utm_source')
+            utm_medium = request.GET.get('utm_medium')
+            utm_campaign = request.GET.get('utm_campaign')
+            
+            # If UTM campaign is present, try to match with a marketing campaign
+            campaign = None
+            if utm_campaign:
+                campaign = MarketingCampaign.objects.filter(
+                    utm_campaign=utm_campaign,
+                    is_active=True,
+                    start_date__lte=timezone.now().date(),
+                ).filter(
+                    Q(end_date__gte=timezone.now().date()) | Q(end_date__isnull=True)
+                ).first()
+            
             # Record the click
-            AffiliateClick.objects.create(
+            click = AffiliateClick.objects.create(
                 product=product,
                 user=request.user if request.user.is_authenticated else None,
+                partner=partner,
                 ip_address=request.META.get('REMOTE_ADDR', ''),
                 user_agent=request.META.get('HTTP_USER_AGENT', ''),
-                referrer=request.META.get('HTTP_REFERER', '')
+                referrer=request.META.get('HTTP_REFERER', ''),
+                utm_source=utm_source,
+                utm_medium=utm_medium,
+                utm_campaign=utm_campaign
             )
+            
+            # Create attribution cookie (for analytical purposes)
+            if partner:
+                # Set attribution cookie for 30 days
+                expires_at = timezone.now() + timedelta(days=30)
+                
+                # Create attribution record
+                AffiliateAttributionCookie.objects.create(
+                    user=request.user if request.user.is_authenticated else None,
+                    session_key=request.session.session_key,
+                    product=product,
+                    partner=partner,
+                    click=click,
+                    expires_at=expires_at,
+                    is_active=True
+                )
             
             return HttpResponseRedirect(redirect_url)
     
